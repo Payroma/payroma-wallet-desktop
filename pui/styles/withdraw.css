@@ -1,0 +1,21 @@
+AddressBookItem
+{
+	background-color: @background;
+	border-radius: 5px;
+}
+AddressBookItem:hover
+{
+	background-color: @background_second;
+}
+
+
+#lineEditAddress[addable="true"]
+{
+    padding-right: 45px;
+}
+
+
+#lineEditAmount
+{
+    padding-right: 60px;
+}

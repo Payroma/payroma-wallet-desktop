@@ -1,0 +1,15 @@
+WalletItem
+{
+	background-color: @background;
+	border-radius: 5px;
+}
+WalletItem:hover
+{
+	background-color: @background_second;
+}
+
+
+QLineEdit[clearable="true"]
+{
+    padding-right: 40px;
+}

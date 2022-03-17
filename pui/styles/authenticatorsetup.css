@@ -1,0 +1,44 @@
+HeaderWidget
+{
+	background-color: @background_second;
+}
+
+
+#labelDownload,
+#labelVerification,
+#labelScan
+{
+	color: @font;
+}
+#labelDownload:disabled,
+#labelVerification:disabled,
+#labelScan:disabled
+{
+	color: @font_description;
+}
+
+
+#progressDownloadWidget,
+#progressVerificationWidget
+{
+	background-color: @positive;
+}
+#progressDownloadWidget:disabled,
+#progressVerificationWidget:disabled
+{
+	background-color: @disabled;
+}
+
+
+#pushButtonGooglePlay
+{
+	image: url(:/images/brands/google-play.png);
+}
+#pushButtonAppStore
+{
+	image: url(:/images/brands/app-store.png);
+}
+#pushButtonAuthy
+{
+	image: url(:/images/brands/authy.png);
+}

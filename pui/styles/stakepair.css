@@ -1,0 +1,12 @@
+HeaderWidget
+{
+	background-color: @background_second;
+}
+
+
+#lineEditDeposit,
+#lineEditWithdraw,
+#lineEditReward
+{
+    padding-right: 90px;
+}
