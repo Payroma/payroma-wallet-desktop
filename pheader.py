@@ -3,7 +3,7 @@
 - Usable for any object
 """
 
-from plibs import os, sys, platform, psutil, QApplication, QTranslator
+from plibs import *
 
 
 # OS info
@@ -44,7 +44,8 @@ class Dir:
 
 # Settings Options  // Set settings options here
 class SettingsOption:
-    pass
+    themeName = '0x001'
+    networkID = '0x002'
 
 
 # Shortcuts
@@ -53,7 +54,7 @@ class Global:
     kernel = QApplication(sys.argv)
     translator = QTranslator()
     logsSystem = None
-    settings = None
+    settings: SPSettings.SettingsManager = None
 
 
 # Tabs

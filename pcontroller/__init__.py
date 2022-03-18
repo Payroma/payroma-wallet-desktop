@@ -183,7 +183,8 @@ def settings_load() -> SPSettings.SettingsManager:
     )
 
     # Set settings options here
-    # ...
+    settings.add_option(SettingsOption.themeName, '')
+    settings.add_option(SettingsOption.networkID, 90980410)
 
     settings.load()
 

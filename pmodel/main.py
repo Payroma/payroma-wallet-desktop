@@ -78,7 +78,8 @@ class MainModel(main.UiForm):
         url_open(Website.PAYROMA)
 
     def default_theme(self):
-        pass
+        theme_name = Global.settings.get_option(SettingsOption.themeName)
+        self.set_theme_mode(theme_name)
 
     def set_current_tab(self, name: str, recordable: bool = True):
         super(MainModel, self).set_current_tab(name)

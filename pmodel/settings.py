@@ -17,6 +17,7 @@ class SettingsModel(settings.UiForm):
     def switch_clicked(self, state: bool):
         theme_name = 'dark' if state else ''
         globalmethods.MainModel.setThemeMode(theme_name)
+        Global.settings.update_option(SettingsOption.themeName, theme_name)
 
     @pyqtSlot()
     def network_clicked(self):
