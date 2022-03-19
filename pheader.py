@@ -3,7 +3,7 @@
 - Usable for any object
 """
 
-from plibs import *
+from plibs import os, sys, platform, psutil, QApplication, QTranslator, SPSettings
 
 
 # OS info

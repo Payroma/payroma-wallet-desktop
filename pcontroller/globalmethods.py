@@ -1,3 +1,6 @@
+from pcontroller import payromasdk
+
+
 class MainModel:
     _setCurrentTab = None
     _setThemeMode = None
@@ -98,3 +101,11 @@ class AuthenticatorSetupModel:
     @staticmethod
     def setCurrentTab(name: str):
         AuthenticatorSetupModel._setCurrentTab(name)
+
+
+class NetworksListModel:
+    _refresh = None
+
+    @staticmethod
+    def refresh():
+        NetworksListModel._refresh()

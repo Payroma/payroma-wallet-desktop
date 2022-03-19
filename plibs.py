@@ -9,12 +9,16 @@ from PyQt5.QtCore import *
 from password_strength import PasswordStats
 from Crypto import Random
 from Crypto.Cipher import AES
+from typing import Union
 import io
 import os
 import sys
 import six
 import time
 import json
+import web3
+import pyotp
+import base64
 import shutil
 import random
 import pickle
@@ -23,6 +27,7 @@ import psutil
 import hashlib
 import platform
 import pyqrcode
+import webbrowser
 import SPCrypto
 import SPSecurity
 import SPSettings
