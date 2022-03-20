@@ -29,7 +29,8 @@ class NetworkItem(networkitem.UiForm):
             color=styles.data.colors.font.name(),
             accept="Remove"
         )
-        messagebox.groupBox.layout().setContentsMargins(21, 11, 21, 11)
+        messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
+        messagebox.frame.layout().setSpacing(11)
         messagebox.exec_()
         if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
             self.__removeThread.start()

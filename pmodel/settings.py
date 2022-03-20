@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods
+from pcontroller import globalmethods, payromasdk
 from pui import settings
 
 
@@ -10,8 +10,13 @@ class SettingsModel(settings.UiForm):
 
         self.setup()
 
-        # Test
-        self.set_data(network_connected=True, network_name="Binance Smart Chain")
+    def showEvent(self, event: QShowEvent):
+        super(SettingsModel, self).showEvent(event)
+
+        self.set_data(
+            network_connected=payromasdk.MainProvider.is_connected(),
+            network_name=payromasdk.MainProvider.interface.name
+        )
 
     @pyqtSlot(bool)
     def switch_clicked(self, state: bool):
