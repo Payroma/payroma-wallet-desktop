@@ -1,4 +1,5 @@
 from pcontroller import payromasdk
+from typing import Union
 
 
 class MainModel:
@@ -96,11 +97,37 @@ class StakePairAmountModel:
 
 
 class AuthenticatorSetupModel:
+    _setData = None
+    _getData = None
     _setCurrentTab = None
+
+    @staticmethod
+    def setData(username: str, password: str, pin_code: Union[str, bytes], address: str = ''):
+        AuthenticatorSetupModel._setData(username, password, pin_code, address)
+
+    @staticmethod
+    def getData() -> tuple[str, str, Union[str, bytes], str]:
+        return AuthenticatorSetupModel._getData()
 
     @staticmethod
     def setCurrentTab(name: str):
         AuthenticatorSetupModel._setCurrentTab(name)
+
+
+class AuthenticatorScanModel:
+    _setData = None
+
+    @staticmethod
+    def setData(username: str, key: str):
+        AuthenticatorScanModel._setData(username, key)
+
+
+class AuthenticatorFinishedModel:
+    _setData = None
+
+    @staticmethod
+    def setData(key: str):
+        AuthenticatorFinishedModel._setData(key)
 
 
 class NetworksListModel:

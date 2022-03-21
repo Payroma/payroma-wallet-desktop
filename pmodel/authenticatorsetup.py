@@ -13,18 +13,33 @@ class AuthenticatorSetupModel(authenticatorsetup.UiForm):
         super(AuthenticatorSetupModel, self).__init__(parent)
 
         self.setup()
-        self.reset()
 
         # Global Methods
+        globalmethods.AuthenticatorSetupModel._setData = self.set_data
+        globalmethods.AuthenticatorSetupModel._getData = self.get_data
         globalmethods.AuthenticatorSetupModel._setCurrentTab = self.set_current_tab
 
         # Tabs
-        self.authenticatorDownloadModel = AuthenticatorDownloadModel(self)
-        self.authenticatorVerificationModel = AuthenticatorVerificationModel(self)
-        self.authenticatorScanModel = AuthenticatorScanModel(self)
-        self.authenticatorFinishedModel = AuthenticatorFinishedModel(self)
+        self.add_tab(AuthenticatorDownloadModel(self), Tab.AuthenticatorSetupTab.DOWNLOAD)
+        self.add_tab(AuthenticatorVerificationModel(self), Tab.AuthenticatorSetupTab.VERIFICATION)
+        self.add_tab(AuthenticatorScanModel(self), Tab.AuthenticatorSetupTab.SCAN)
+        self.add_tab(AuthenticatorFinishedModel(self), Tab.AuthenticatorSetupTab.FINISHED)
 
-        self.add_tab(self.authenticatorDownloadModel, Tab.AuthenticatorSetupTab.DOWNLOAD)
-        self.add_tab(self.authenticatorVerificationModel, Tab.AuthenticatorSetupTab.VERIFICATION)
-        self.add_tab(self.authenticatorScanModel, Tab.AuthenticatorSetupTab.SCAN)
-        self.add_tab(self.authenticatorFinishedModel, Tab.AuthenticatorSetupTab.FINISHED)
+        # Variables
+        self.__usernameValue = ''
+        self.__passwordValue = ''
+        self.__PINCodeValue = ''
+        self.__addressValue = ''
+
+    def showEvent(self, event: QShowEvent):
+        super(AuthenticatorSetupModel, self).showEvent(event)
+        self.reset()
+
+    def set_data(self, username: str, password: str, pin_code: Union[str, bytes], address: str = ''):
+        self.__usernameValue = username
+        self.__passwordValue = password
+        self.__PINCodeValue = pin_code
+        self.__addressValue = address
+
+    def get_data(self) -> tuple[str, str, Union[str, bytes], str]:
+        return self.__usernameValue, self.__passwordValue, self.__PINCodeValue, self.__addressValue

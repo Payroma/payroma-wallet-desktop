@@ -150,7 +150,6 @@ class AddNetworkModel(addnetwork.UiForm):
         self.__addNetworkThread.signal.dictSignal.emit(result)
 
     def __add_clicked_ui(self, result: dict):
-        self.add_completed()
         if result['status']:
             globalmethods.NetworksListModel.refresh()
             globalmethods.MainModel.setCurrentTab(Tab.NETWORKS_LIST)
@@ -159,3 +158,5 @@ class AddNetworkModel(addnetwork.UiForm):
             QApplication.quickNotification.failed(result['error'])
         else:
             QApplication.quickNotification.warning(result['message'])
+
+        self.add_completed()

@@ -27,6 +27,11 @@ SECRET_VALUE = (
 class Website:
     PAYROMA = 'www.payroma.com'
 
+    class Authenticator:
+        GOOGLE_PLAY = 'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=en&gl=US'
+        APP_STORE = 'https://apps.apple.com/us/app/google-authenticator/id388497605'
+        AUTHY = 'https://authy.com/download'
+
 
 # Directories
 class Dir:

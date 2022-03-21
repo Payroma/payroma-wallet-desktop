@@ -10,8 +10,8 @@ class AuthenticatorFinishedModel(authenticatorfinished.UiForm):
 
         self.setup()
 
-        # Test
-        self.set_data("HAZGCNJTMNRWMZLBGM4TANJQMUYTSYRRMYYDOZBZGE2TGNZZGU2Q")
+        # Global Methods
+        globalmethods.AuthenticatorFinishedModel._setData = self.set_data
 
     @pyqtSlot()
     def done_clicked(self):
