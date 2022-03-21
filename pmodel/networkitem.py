@@ -38,7 +38,9 @@ class NetworkItem(networkitem.UiForm):
     def __remove_clicked_core(self):
         result = {
             'status': False,
-            'message': translator("Failed to remove network, Please try again")
+            'error': None,
+            'message': translator("Failed to remove network, Please try again"),
+            'params': {}
         }
 
         try:
@@ -47,7 +49,7 @@ class NetworkItem(networkitem.UiForm):
                 result['message'] = translator("Network removed successfully")
 
         except Exception as err:
-            result['message'] = "{}: {}".format(translator("Failed"), str(err))
+            result['error'] = "{}: {}".format(translator("Failed"), str(err))
 
         self.__removeThread.signal.dictSignal.emit(result)
 
@@ -56,8 +58,10 @@ class NetworkItem(networkitem.UiForm):
         globalmethods.NetworksListModel.refresh()
         if result['status']:
             QApplication.quickNotification.successfully(result['message'])
+        elif result['error']:
+            QApplication.quickNotification.failed(result['error'])
         else:
-            QApplication.quickNotification.failed(result['message'])
+            QApplication.quickNotification.warning(result['message'])
 
     def interface(self) -> payromasdk.tools.interface.Network:
         return self.__interface

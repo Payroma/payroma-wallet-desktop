@@ -15,6 +15,7 @@ class AddNetworkModel(addnetwork.UiForm):
         self.__addNetworkThread.signal.dictSignal.connect(self.__add_clicked_ui)
 
         # Variables
+        self.__isTyping = False
         self.__nameInput = ''
         self.__RPCInput = ''
         self.__symbolInput = ''
@@ -27,6 +28,7 @@ class AddNetworkModel(addnetwork.UiForm):
 
     @pyqtSlot(str)
     def name_changed(self, text: str):
+        self.__isTyping = True
         self.__nameInput = text
         QTimer().singleShot(1000, lambda: self.__name_changed(text))
 
@@ -40,10 +42,12 @@ class AddNetworkModel(addnetwork.UiForm):
             if not is_exists:
                 valid = True
 
+        self.__isTyping = False
         super(AddNetworkModel, self).name_changed(text, valid)
 
     @pyqtSlot(str)
     def rpc_changed(self, text: str):
+        self.__isTyping = True
         self.__RPCInput = text
         QTimer().singleShot(1000, lambda: self.__rpc_changed(text))
 
@@ -56,10 +60,12 @@ class AddNetworkModel(addnetwork.UiForm):
             provider = web3.Web3(web3.Web3.HTTPProvider(text))
             valid = provider.isConnected()
 
+        self.__isTyping = False
         super(AddNetworkModel, self).rpc_changed(text, valid)
 
     @pyqtSlot(str)
     def symbol_changed(self, text: str):
+        self.__isTyping = True
         self.__symbolInput = text
         QTimer().singleShot(1000, lambda: self.__symbol_changed(text))
 
@@ -71,10 +77,12 @@ class AddNetworkModel(addnetwork.UiForm):
         if len(text) >= 3:
             valid = True
 
+        self.__isTyping = False
         super(AddNetworkModel, self).symbol_changed(text, valid)
 
     @pyqtSlot(str)
     def chain_id_changed(self, text: str):
+        self.__isTyping = True
         self.__chainIDInput = text
         QTimer().singleShot(1000, lambda: self.__chain_id_changed(text))
 
@@ -88,10 +96,12 @@ class AddNetworkModel(addnetwork.UiForm):
             if provider.isConnected():
                 valid = (provider.eth.chain_id == int(self.__chainIDInput))
 
+        self.__isTyping = False
         super(AddNetworkModel, self).chain_id_changed(text, valid)
 
     @pyqtSlot(str)
     def explorer_changed(self, text: str):
+        self.__isTyping = True
         self.__explorerURLInput = text
         QTimer().singleShot(1000, lambda: self.__explorer_changed(text))
 
@@ -103,11 +113,12 @@ class AddNetworkModel(addnetwork.UiForm):
         if len(text) > 10:
             valid = True
 
+        self.__isTyping = False
         super(AddNetworkModel, self).explorer_changed(text, valid)
 
     @pyqtSlot()
     def add_clicked(self):
-        if self.__addNetworkThread.isRunning():
+        if self.__isTyping or self.__addNetworkThread.isRunning():
             return
 
         super(AddNetworkModel, self).add_clicked()
@@ -116,7 +127,9 @@ class AddNetworkModel(addnetwork.UiForm):
     def __add_clicked_core(self):
         result = {
             'status': False,
-            'message': translator("Failed to add network, Please try again")
+            'error': None,
+            'message': translator("Failed to add network, Please try again"),
+            'params': {}
         }
 
         try:
@@ -131,7 +144,7 @@ class AddNetworkModel(addnetwork.UiForm):
                 result['message'] = translator("Network added successfully")
 
         except Exception as err:
-            result['message'] = "{}: {}".format(translator("Failed"), str(err))
+            result['error'] = "{}: {}".format(translator("Failed"), str(err))
 
         time.sleep(3)
         self.__addNetworkThread.signal.dictSignal.emit(result)
@@ -142,5 +155,7 @@ class AddNetworkModel(addnetwork.UiForm):
             globalmethods.NetworksListModel.refresh()
             globalmethods.MainModel.setCurrentTab(Tab.NETWORKS_LIST)
             QApplication.quickNotification.successfully(result['message'])
+        elif result['error']:
+            QApplication.quickNotification.failed(result['error'])
         else:
-            QApplication.quickNotification.failed(result['message'])
+            QApplication.quickNotification.warning(result['message'])
