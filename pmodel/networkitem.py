@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, ThreadingArea, translator
+from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
 from pui import networkitem, fonts, styles, images
 
 
@@ -12,7 +12,7 @@ class NetworkItem(networkitem.UiForm):
 
         # Threading Methods
         self.__removeThread = ThreadingArea(self.__remove_clicked_core)
-        self.__removeThread.signal.dictSignal.connect(self.__remove_clicked_ui)
+        self.__removeThread.signal.resultSignal.connect(self.__remove_clicked_ui)
 
         # Variables
         self.__interface = None
@@ -36,32 +36,24 @@ class NetworkItem(networkitem.UiForm):
             self.__removeThread.start()
 
     def __remove_clicked_core(self):
-        result = {
-            'status': False,
-            'error': None,
-            'message': translator("Failed to remove network, Please try again"),
-            'params': {}
-        }
+        result = ThreadingResult(
+            message=translator("Failed to remove network, Please try again")
+        )
 
         try:
-            result['status'] = payromasdk.engine.network.remove(self.__interface)
-            if result['status']:
-                result['message'] = translator("Network removed successfully")
+            result.isValid = payromasdk.engine.network.remove(self.__interface)
+            if result.isValid:
+                result.message = translator("Network removed successfully")
 
         except Exception as err:
-            result['error'] = "{}: {}".format(translator("Failed"), str(err))
+            result.error(str(err))
 
-        self.__removeThread.signal.dictSignal.emit(result)
+        self.__removeThread.signal.resultSignal.emit(result)
 
     @staticmethod
-    def __remove_clicked_ui(result: dict):
+    def __remove_clicked_ui(result: ThreadingResult):
         globalmethods.NetworksListModel.refresh()
-        if result['status']:
-            QApplication.quickNotification.successfully(result['message'])
-        elif result['error']:
-            QApplication.quickNotification.failed(result['error'])
-        else:
-            QApplication.quickNotification.warning(result['message'])
+        result.show_message()
 
     def interface(self) -> payromasdk.tools.interface.Network:
         return self.__interface

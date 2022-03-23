@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk
+from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
 from pui import settings
 
 
@@ -10,13 +10,13 @@ class SettingsModel(settings.UiForm):
 
         self.setup()
 
+        # Threading Methods
+        self.__networkDetectionThread = ThreadingArea(self.__network_detection_core)
+        self.__networkDetectionThread.signal.resultSignal.connect(self.__network_detection_ui)
+
     def showEvent(self, event: QShowEvent):
         super(SettingsModel, self).showEvent(event)
-
-        self.set_data(
-            network_connected=payromasdk.MainProvider.is_connected(),
-            network_name=payromasdk.MainProvider.interface.name
-        )
+        self.__networkDetectionThread.start()
 
     @pyqtSlot(bool)
     def switch_clicked(self, state: bool):
@@ -35,3 +35,25 @@ class SettingsModel(settings.UiForm):
     @pyqtSlot()
     def import_clicked(self):
         super(SettingsModel, self).import_clicked()
+
+    def __network_detection_core(self):
+        result = ThreadingResult(
+            message=translator("Unable to connect, make sure you are connected to the internet"),
+            params={
+                'isConnected': False,
+                'networkName': payromasdk.MainProvider.interface.name
+            }
+        )
+
+        try:
+            result.isValid = result.params['isConnected'] = payromasdk.MainProvider.is_connected()
+        except Exception as err:
+            result.error(str(err))
+
+        self.__networkDetectionThread.signal.resultSignal.emit(result)
+
+    def __network_detection_ui(self, result: ThreadingResult):
+        self.set_data(result.params['isConnected'], result.params['networkName'])
+
+        if not result.isValid:
+            result.show_message()

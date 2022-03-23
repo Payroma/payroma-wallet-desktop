@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, ThreadingArea, translator
+from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
 from pui import authenticatorscan
 
 
@@ -15,7 +15,7 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
 
         # Threading Methods
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
-        self.__confirmThread.signal.dictSignal.connect(self.__confirm_clicked_ui)
+        self.__confirmThread.signal.resultSignal.connect(self.__confirm_clicked_ui)
 
         # Variables
         self.__isTyping = False
@@ -54,34 +54,27 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
         self.__confirmThread.start()
 
     def __confirm_clicked_core(self):
-        result = {
-            'status': False,
-            'error': None,
-            'message': translator("The OTP code is wrong"),
-            'params': {}
-        }
+        result = ThreadingResult(
+            message=translator("The OTP code is wrong")
+        )
 
         try:
-            result['status'] = self.__totp.verify(self.get_otp_code_text())
-            if result['status']:
-                result['message'] = translator("OTP code has been confirmed successfully")
+            result.isValid = self.__totp.verify(self.get_otp_code_text())
+            if result.isValid:
+                result.message = translator("OTP code has been confirmed successfully")
                 self.__add_new_wallet()
 
         except Exception as err:
-            result['error'] = "{}: {}".format(translator("Failed"), str(err))
+            result.error(str(err))
 
         time.sleep(3)
-        self.__confirmThread.signal.dictSignal.emit(result)
+        self.__confirmThread.signal.resultSignal.emit(result)
 
-    def __confirm_clicked_ui(self, result: dict):
-        if result['status']:
+    def __confirm_clicked_ui(self, result: ThreadingResult):
+        if result.isValid:
             globalmethods.AuthenticatorSetupModel.setCurrentTab(Tab.AuthenticatorSetupTab.FINISHED)
-            QApplication.quickNotification.successfully(result['message'])
-        elif result['error']:
-            QApplication.quickNotification.failed(result['error'])
-        else:
-            QApplication.quickNotification.warning(result['message'])
 
+        result.show_message()
         self.confirm_completed()
 
     def set_data(self, username: str, key: str):

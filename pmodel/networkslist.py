@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, ThreadingArea, translator
+from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
 from pui import networkslist
 from pmodel import networkitem
 
@@ -16,13 +16,17 @@ class NetworksListModel(networkslist.UiForm):
 
         # Threading Methods
         self.__setCurrentNetworkThread = ThreadingArea(self.__set_current_network_core)
-        self.__setCurrentNetworkThread.signal.dictSignal.connect(self.__set_current_network_ui)
+        self.__setCurrentNetworkThread.signal.resultSignal.connect(self.__set_current_network_ui)
 
         # Variables
         self.__networks = []
         self.__currentNetwork = None
 
         # Run
+        self.refresh()
+
+    def showEvent(self, event: QShowEvent):
+        super(NetworksListModel, self).showEvent(event)
         self.refresh()
 
     @pyqtSlot()
@@ -53,10 +57,8 @@ class NetworksListModel(networkslist.UiForm):
 
             if default_network == network.networkID:
                 item.set_master()
-                if not interface:
-                    interface = network
 
-            if current_network == network.networkID:
+            if not interface or current_network == network.networkID:
                 interface = network
 
             self.add_item(item)
@@ -72,33 +74,32 @@ class NetworksListModel(networkslist.UiForm):
         self.__setCurrentNetworkThread.start()
 
     def __set_current_network_core(self):
-        result = {
-            'status': False,
-            'message': translator("Unable to connect, make sure you are connected to the internet")
-        }
+        result = ThreadingResult(
+            message=translator("Unable to connect, make sure you are connected to the internet"),
+            params={
+                'isConnected': False
+            }
+        )
 
         try:
             Global.settings.update_option(SettingsOption.networkID, self.__currentNetwork.networkID)
-            result['status'] = payromasdk.MainProvider.connect(network_interface=self.__currentNetwork)
-            if result['status']:
-                result['message'] = translator(
-                    "{}: {}".format(translator("Current network"), self.__currentNetwork.name)
+            result.isValid = payromasdk.MainProvider.connect(network_interface=self.__currentNetwork)
+            if result.isValid:
+                result.params['isConnected'] = payromasdk.MainProvider.is_connected()
+                result.message = translator(
+                    "{}: {}".format(translator("Current network"), payromasdk.MainProvider.interface.name)
                 )
 
         except Exception as err:
-            result['message'] = "{}: {}".format(translator("Failed"), str(err))
+            result.error(str(err))
 
-        self.__setCurrentNetworkThread.signal.dictSignal.emit(result)
+        self.__setCurrentNetworkThread.signal.resultSignal.emit(result)
 
-    def __set_current_network_ui(self, result: dict):
+    def __set_current_network_ui(self, result: ThreadingResult):
         for item in self.__networks:
             item.set_status(
-                item.interface().networkID == self.__currentNetwork.networkID and result['status']
+                item.interface() is payromasdk.MainProvider.interface and result.params['isConnected']
             )
 
-        if result['status']:
-            QApplication.quickNotification.successfully(result['message'])
-        else:
-            QApplication.quickNotification.warning(result['message'])
-
+        result.show_message()
         QTimer().singleShot(100, self.repaint)
