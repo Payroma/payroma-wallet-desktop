@@ -16,11 +16,6 @@ class AddNetworkModel(addnetwork.UiForm):
 
         # Variables
         self.__isTyping = False
-        self.__nameInput = ''
-        self.__RPCInput = ''
-        self.__symbolInput = ''
-        self.__chainIDInput = ''
-        self.__explorerURLInput = ''
 
     def hideEvent(self, event: QHideEvent):
         super(AddNetworkModel, self).hideEvent(event)
@@ -29,12 +24,11 @@ class AddNetworkModel(addnetwork.UiForm):
     @pyqtSlot(str)
     def name_changed(self, text: str):
         self.__isTyping = True
-        self.__nameInput = text
         QTimer().singleShot(1000, lambda: self.__name_changed(text))
 
     def __name_changed(self, text: str):
         valid = False
-        if text != self.__nameInput:
+        if text != self.get_name_text():
             return
 
         if text:
@@ -48,15 +42,17 @@ class AddNetworkModel(addnetwork.UiForm):
     @pyqtSlot(str)
     def rpc_changed(self, text: str):
         self.__isTyping = True
-        self.__RPCInput = text
         QTimer().singleShot(1000, lambda: self.__rpc_changed(text))
 
     def __rpc_changed(self, text: str):
         valid = False
-        if text != self.__RPCInput:
+        if text != self.get_rpc_text():
             return
 
         if len(text) > 10:
+            if self.get_chain_id_text():
+                self.__chain_id_changed(self.get_chain_id_text())
+
             provider = web3.Web3(web3.Web3.HTTPProvider(text))
             valid = provider.isConnected()
 
@@ -66,12 +62,11 @@ class AddNetworkModel(addnetwork.UiForm):
     @pyqtSlot(str)
     def symbol_changed(self, text: str):
         self.__isTyping = True
-        self.__symbolInput = text
         QTimer().singleShot(1000, lambda: self.__symbol_changed(text))
 
     def __symbol_changed(self, text: str):
         valid = False
-        if text != self.__symbolInput:
+        if text != self.get_symbol_text():
             return
 
         if len(text) >= 3:
@@ -83,18 +78,17 @@ class AddNetworkModel(addnetwork.UiForm):
     @pyqtSlot(str)
     def chain_id_changed(self, text: str):
         self.__isTyping = True
-        self.__chainIDInput = text
         QTimer().singleShot(1000, lambda: self.__chain_id_changed(text))
 
     def __chain_id_changed(self, text: str):
         valid = False
-        if text != self.__chainIDInput:
+        if text != self.get_chain_id_text():
             return
 
-        if text and self.__RPCInput:
-            provider = web3.Web3(web3.Web3.HTTPProvider(self.__RPCInput))
+        if text and self.get_rpc_text():
+            provider = web3.Web3(web3.Web3.HTTPProvider(self.get_rpc_text()))
             if provider.isConnected():
-                valid = (provider.eth.chain_id == int(self.__chainIDInput))
+                valid = (provider.eth.chain_id == int(self.get_chain_id_text()))
 
         self.__isTyping = False
         super(AddNetworkModel, self).chain_id_changed(text, valid)
@@ -102,12 +96,11 @@ class AddNetworkModel(addnetwork.UiForm):
     @pyqtSlot(str)
     def explorer_changed(self, text: str):
         self.__isTyping = True
-        self.__explorerURLInput = text
         QTimer().singleShot(1000, lambda: self.__explorer_changed(text))
 
     def __explorer_changed(self, text: str):
         valid = False
-        if text != self.__explorerURLInput:
+        if text != self.get_explorer_text():
             return
 
         if len(text) > 10:
@@ -134,11 +127,11 @@ class AddNetworkModel(addnetwork.UiForm):
 
         try:
             result['status'] = payromasdk.engine.network.add_new(
-                rpc=self.__RPCInput,
-                name=self.__nameInput,
-                chain_id=int(self.__chainIDInput),
-                symbol=self.__symbolInput,
-                explorer=self.__explorerURLInput
+                rpc=self.get_rpc_text(),
+                name=self.get_name_text(),
+                chain_id=int(self.get_chain_id_text()),
+                symbol=self.get_symbol_text(),
+                explorer=self.get_explorer_text()
             )
             if result['status']:
                 result['message'] = translator("Network added successfully")

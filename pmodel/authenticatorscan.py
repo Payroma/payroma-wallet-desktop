@@ -20,7 +20,6 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
         # Variables
         self.__isTyping = False
         self.__totp = None
-        self.__OTPCodeInput = ''
 
     def hideEvent(self, event: QHideEvent):
         super(AuthenticatorScanModel, self).hideEvent(event)
@@ -33,12 +32,11 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
     @pyqtSlot(str)
     def otp_code_changed(self, text: str):
         self.__isTyping = True
-        self.__OTPCodeInput = text
         QTimer().singleShot(1000, lambda: self.__otp_code_changed(text))
 
     def __otp_code_changed(self, text: str):
         valid = False
-        if text != self.__OTPCodeInput:
+        if text != self.get_otp_code_text():
             return
 
         if len(text) == 6:
@@ -64,7 +62,7 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
         }
 
         try:
-            result['status'] = self.__totp.verify(self.__OTPCodeInput)
+            result['status'] = self.__totp.verify(self.get_otp_code_text())
             if result['status']:
                 result['message'] = translator("OTP code has been confirmed successfully")
                 self.__add_new_wallet()
@@ -98,5 +96,5 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
                 username=username,
                 password=password,
                 pin_code=pin_code,
-                otp_code=self.__OTPCodeInput
+                otp_code=self.get_otp_code_text()
             )

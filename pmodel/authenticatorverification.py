@@ -16,7 +16,6 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
 
         # Variables
         self.__isTyping = False
-        self.__PINCodeInput = ''
 
     def showEvent(self, event: QShowEvent):
         super(AuthenticatorVerificationModel, self).showEvent(event)
@@ -31,12 +30,11 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
     @pyqtSlot(str)
     def pin_code_changed(self, text: str):
         self.__isTyping = True
-        self.__PINCodeInput = text
         QTimer().singleShot(1000, lambda: self.__pin_code_changed(text))
 
     def __pin_code_changed(self, text: str):
         valid = False
-        if text != self.__PINCodeInput:
+        if text != self.get_pin_code_text():
             return
 
         if len(text) == 6:
@@ -68,7 +66,7 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
             username, password, pin_code, _ = globalmethods.AuthenticatorSetupModel.getData()
 
             if isinstance(pin_code, str):
-                result['status'] = (self.__PINCodeInput == pin_code)
+                result['status'] = (self.get_pin_code_text() == pin_code)
             elif isinstance(pin_code, bytes):
                 try:
                     payromasdk.tools.walletcreator.access(username, password, pin_code, '')
@@ -80,7 +78,7 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
                 result['message'] = translator("PIN code has been confirmed successfully")
                 result['params']['username'] = username
                 result['params']['key'] = payromasdk.tools.walletcreator.otp_hash(
-                    username, password, self.__PINCodeInput
+                    username, password, self.get_pin_code_text()
                 )
 
         except Exception as err:
