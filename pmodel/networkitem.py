@@ -1,7 +1,6 @@
 from plibs import *
-from pheader import *
 from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
-from pui import networkitem, fonts, styles, images
+from pui import networkitem, fonts, styles, images, Size
 
 
 class NetworkItem(networkitem.UiForm):
@@ -27,7 +26,8 @@ class NetworkItem(networkitem.UiForm):
             icon=images.data.icons.warning41,
             font_size=fonts.data.size.title,
             color=styles.data.colors.font.name(),
-            accept="Remove"
+            accept="Remove",
+            window_size=Size.messageBox
         )
         messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
         messagebox.frame.layout().setSpacing(11)
