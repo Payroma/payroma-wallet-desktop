@@ -5,8 +5,18 @@ from typing import Union
 import time
 
 
+recentWalletsEngine = {
+    # addressID: walletEngine
+}
+
+
 def get_all() -> list:
-    return list(wallets.db.get_data().values())
+    items = list(wallets.db.get_data().values())
+    favorites = [i for i in items if i.isFavorite]
+    for i in favorites:
+        items.remove(i)
+
+    return favorites + items
 
 
 def add_new(username: str, password: str, pin_code: str, otp_code: str) -> bool:
@@ -44,6 +54,9 @@ def remove(wallet_interface: interface.Wallet) -> bool:
     if isinstance(wallet_interface, interface.Wallet):
         try:
             wallets.db.remove_item(item_id=wallet_interface.addressID)
+            if wallet_interface.addressID in recentWalletsEngine:
+                del recentWalletsEngine[wallet_interface.addressID]
+
         except KeyError:
             pass
         else:
@@ -92,6 +105,8 @@ def import_wallets(
 
 class WalletEngine(object):
     def __init__(self, wallet_interface: interface.Wallet):
+        recentWalletsEngine[wallet_interface.addressID] = self
+
         self.__password = None
         self.__isLogged = False
 
