@@ -19,7 +19,7 @@ class NetworksListModel(networkslist.UiForm):
         self.__setCurrentNetworkThread.signal.resultSignal.connect(self.__set_current_network_ui)
 
         # Variables
-        self.__networks = []
+        self.__networkItems = []
         self.__currentNetwork = None
 
         # Run
@@ -40,7 +40,7 @@ class NetworksListModel(networkslist.UiForm):
 
     def reset(self):
         super(NetworksListModel, self).reset()
-        self.__networks.clear()
+        self.__networkItems.clear()
         self.__currentNetwork = None
 
     def refresh(self):
@@ -52,8 +52,6 @@ class NetworksListModel(networkslist.UiForm):
         for network in payromasdk.engine.network.get_all():
             item = networkitem.NetworkItem(self)
             item.set_interface(network)
-            item.set_name(network.name)
-            item.set_symbol(network.symbol)
 
             if default_network == network.networkID:
                 item.set_master()
@@ -62,7 +60,7 @@ class NetworksListModel(networkslist.UiForm):
                 interface = network
 
             self.add_item(item)
-            self.__networks.append(item)
+            self.__networkItems.append(item)
 
         self.set_current_network(interface)
 
@@ -96,7 +94,7 @@ class NetworksListModel(networkslist.UiForm):
         self.__setCurrentNetworkThread.signal.resultSignal.emit(result)
 
     def __set_current_network_ui(self, result: ThreadingResult):
-        for item in self.__networks:
+        for item in self.__networkItems:
             item.set_status(
                 item.interface() is payromasdk.MainProvider.interface and result.params['isConnected']
             )

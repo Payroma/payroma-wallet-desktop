@@ -60,3 +60,5 @@ class NetworkItem(networkitem.UiForm):
 
     def set_interface(self, interface: payromasdk.tools.interface.Network):
         self.__interface = interface
+        self.set_name(interface.name)
+        self.set_symbol(interface.symbol)
