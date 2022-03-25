@@ -17,6 +17,14 @@ class MainModel:
         MainModel._setThemeMode(name)
 
 
+class WalletsListModel:
+    _currentWalletEngine = None
+
+    @staticmethod
+    def currentWalletEnine() -> payromasdk.engine.wallet.WalletEngine:
+        return WalletsListModel._currentWalletEngine()
+
+
 class LoginModel:
     _setData = None
 

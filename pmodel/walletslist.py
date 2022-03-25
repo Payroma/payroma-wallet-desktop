@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods
+from pcontroller import globalmethods, payromasdk
 from pui import walletslist
 from pmodel import walletitem
 
@@ -11,16 +11,15 @@ class WalletsListModel(walletslist.UiForm):
 
         self.setup()
 
-        # Test
-        wallets = {
-            '0x0000000000000000000000000000000000000000': 'Wallet1',
-            '0x0000000000000000000000000000000000000001': 'Wallet2'
-        }
-        for address, username in wallets.items():
-            item = walletitem.WalletItem(self)
-            item.set_username(username)
-            item.set_address(address)
-            self.add_item(item)
+        # Global Methods
+        globalmethods.WalletsListModel._currentWalletEngine = self.current_wallet_engine
+
+        # Variables
+        self.__currentWalletEngine = None
+
+    def showEvent(self, event: QShowEvent):
+        super(WalletsListModel, self).showEvent(event)
+        self.refresh()
 
     @pyqtSlot()
     def add_new_clicked(self):
@@ -29,9 +28,26 @@ class WalletsListModel(walletslist.UiForm):
     @pyqtSlot(QListWidgetItem)
     def item_clicked(self, item: QListWidgetItem):
         widget = super(WalletsListModel, self).item_clicked(item)
-        globalmethods.LoginModel.setData(widget.get_username(), widget.get_address())
-        globalmethods.WalletModel.setData(widget.get_username(), widget.get_address())
-        globalmethods.WalletDetailsModel.setData(widget.get_address(), time.ctime())
-        globalmethods.WalletDetailsModel.setPrivateKey('0' * 64)
-        globalmethods.DepositModel.setData(widget.get_address(), 'Binance Smart Chain')
-        globalmethods.MainModel.setCurrentTab(Tab.LOGIN, recordable=False)
+        self.__currentWalletEngine = widget.engine()
+
+        if widget.engine().is_logged():
+            globalmethods.MainModel.setCurrentTab(Tab.WALLET)
+        else:
+            globalmethods.MainModel.setCurrentTab(Tab.LOGIN, recordable=False)
+
+    def refresh(self):
+        self.reset()
+
+        for wallet in payromasdk.engine.wallet.get_all():
+            # Use wallet engine that created before or create a new one
+            wallet = payromasdk.engine.wallet.recentWalletsEngine.get(
+                wallet.addressID, payromasdk.engine.wallet.WalletEngine(wallet_interface=wallet)
+            )
+
+            item = walletitem.WalletItem(self)
+            item.set_engine(wallet)
+
+            self.add_item(item)
+
+    def current_wallet_engine(self) -> payromasdk.engine.wallet.WalletEngine:
+        return self.__currentWalletEngine
