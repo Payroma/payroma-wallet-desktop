@@ -20,10 +20,11 @@ class LoginModel(login.UiForm):
         # Variables
         self.__isTyping = False
         self.__forwardTab = None
+        self.__forwardTabRecordable = None
 
     def showEvent(self, event: QShowEvent):
         super(LoginModel, self).showEvent(event)
-        wallet_engine = globalmethods.WalletsListModel.currentWalletEnine()
+        wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
         self.reset()
         self.set_data(wallet_engine.username(), wallet_engine.address().value())
 
@@ -64,7 +65,7 @@ class LoginModel(login.UiForm):
         )
 
         try:
-            wallet_engine = globalmethods.WalletsListModel.currentWalletEnine()
+            wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
             username = wallet_engine.username()
             password = self.get_password_text()
             pin_code = wallet_engine.pin_code()
@@ -87,11 +88,13 @@ class LoginModel(login.UiForm):
 
         self.login_completed()
 
-    def forward(self, tab: str):
+    def forward(self, tab: str, recordable: bool = True):
         self.__forwardTab = tab
-        wallet_engine = globalmethods.WalletsListModel.currentWalletEnine()
+        self.__forwardTabRecordable = recordable
+        wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
 
-        if wallet_engine.is_logged():
-            globalmethods.MainModel.setCurrentTab(tab)
-        else:
-            globalmethods.MainModel.setCurrentTab(Tab.LOGIN, recordable=False)
+        if not wallet_engine.is_logged():
+            tab = Tab.LOGIN
+            recordable = False
+
+        globalmethods.MainModel.setCurrentTab(tab, recordable=recordable)

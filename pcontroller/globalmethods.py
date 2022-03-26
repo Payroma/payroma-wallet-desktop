@@ -21,7 +21,7 @@ class WalletsListModel:
     _currentWalletEngine = None
 
     @staticmethod
-    def currentWalletEnine() -> payromasdk.engine.wallet.WalletEngine:
+    def currentWalletEngine() -> payromasdk.engine.wallet.WalletEngine:
         return WalletsListModel._currentWalletEngine()
 
 
@@ -29,8 +29,8 @@ class LoginModel:
     _forward = None
 
     @staticmethod
-    def forward(tab: str):
-        LoginModel._forward(tab)
+    def forward(tab: str, recordable: bool = True):
+        LoginModel._forward(tab, recordable)
 
 
 class WalletModel:

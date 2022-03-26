@@ -31,9 +31,16 @@ class AuthenticatorSetupModel(authenticatorsetup.UiForm):
         self.__PINCodeValue = ''
         self.__addressValue = ''
 
-    def showEvent(self, event: QShowEvent):
-        super(AuthenticatorSetupModel, self).showEvent(event)
+    def hideEvent(self, event: QHideEvent):
+        super(AuthenticatorSetupModel, self).hideEvent(event)
         self.reset()
+
+    def reset(self):
+        super(AuthenticatorSetupModel, self).reset()
+        self.__usernameValue = ''
+        self.__passwordValue = ''
+        self.__PINCodeValue = ''
+        self.__addressValue = ''
 
     def set_data(self, username: str, password: str, pin_code: Union[str, bytes], address: str = ''):
         self.__usernameValue = username

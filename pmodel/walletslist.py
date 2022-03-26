@@ -36,9 +36,10 @@ class WalletsListModel(walletslist.UiForm):
 
         for wallet in payromasdk.engine.wallet.get_all():
             # Use wallet engine that created before or create a new one
-            wallet = payromasdk.engine.wallet.recentWalletsEngine.get(
-                wallet.addressID, payromasdk.engine.wallet.WalletEngine(wallet_interface=wallet)
-            )
+            try:
+                wallet = payromasdk.engine.wallet.recentWalletsEngine[wallet.addressID]
+            except KeyError:
+                wallet = payromasdk.engine.wallet.WalletEngine(wallet_interface=wallet)
 
             item = walletitem.WalletItem(self)
             item.set_engine(wallet)

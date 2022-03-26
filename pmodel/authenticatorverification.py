@@ -61,23 +61,26 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
         )
 
         try:
-            username, password, pin_code, _ = globalmethods.AuthenticatorSetupModel.getData()
+            username, password, pin_code, address = globalmethods.AuthenticatorSetupModel.getData()
+            otp_hash = payromasdk.tools.walletcreator.otp_hash(username, password, self.get_pin_code_text())
 
             if isinstance(pin_code, str):
                 result.isValid = (self.get_pin_code_text() == pin_code)
             elif isinstance(pin_code, bytes):
+                otp_code = pyotp.TOTP(otp_hash).now()
                 try:
-                    payromasdk.tools.walletcreator.access(username, password, pin_code, '')
-                    result.isValid = True
-                except PermissionError:
+                    address_, _, pin_code_ = payromasdk.tools.walletcreator.access(
+                        username, password, pin_code, otp_code
+                    )
+                    if address_.value() == address and pin_code_ == pin_code:
+                        result.isValid = True
+                except TypeError:
                     pass
 
             if result.isValid:
                 result.message = translator("PIN code has been confirmed successfully")
                 result.params['username'] = username
-                result.params['key'] = payromasdk.tools.walletcreator.otp_hash(
-                    username, password, self.get_pin_code_text()
-                )
+                result.params['key'] = otp_hash
 
         except Exception as err:
             result.error(str(err))
