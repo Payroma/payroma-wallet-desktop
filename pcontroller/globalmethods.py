@@ -26,11 +26,11 @@ class WalletsListModel:
 
 
 class LoginModel:
-    _setData = None
+    _forward = None
 
     @staticmethod
-    def setData(username: str, address: str):
-        LoginModel._setData(username, address)
+    def forward(tab: str):
+        LoginModel._forward(tab)
 
 
 class WalletModel:

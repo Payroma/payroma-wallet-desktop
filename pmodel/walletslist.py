@@ -29,11 +29,7 @@ class WalletsListModel(walletslist.UiForm):
     def item_clicked(self, item: QListWidgetItem):
         widget = super(WalletsListModel, self).item_clicked(item)
         self.__currentWalletEngine = widget.engine()
-
-        if widget.engine().is_logged():
-            globalmethods.MainModel.setCurrentTab(Tab.WALLET)
-        else:
-            globalmethods.MainModel.setCurrentTab(Tab.LOGIN, recordable=False)
+        globalmethods.LoginModel.forward(Tab.WALLET)
 
     def refresh(self):
         self.reset()
