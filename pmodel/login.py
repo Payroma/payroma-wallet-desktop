@@ -85,7 +85,11 @@ class LoginModel(login.UiForm):
 
     def __login_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.MainModel.setCurrentTab(Tab.AUTHENTICATOR, recordable=False)
+            globalmethods.AuthenticatorModel.forward(
+                tab=self.__forwardTab,
+                recordable=self.__forwardTabRecordable,
+                password=self.get_password_text()
+            )
         else:
             result.show_message()
 

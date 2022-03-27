@@ -104,6 +104,19 @@ class StakePairAmountModel:
         StakePairAmountModel._setData(balance, staked, claim, stake_symbol, earn_symbol)
 
 
+class AuthenticatorModel:
+    _forward = None
+    _getPrivateKey = None
+
+    @staticmethod
+    def forward(tab: str, recordable: bool = True, password: str = ''):
+        AuthenticatorModel._forward(tab, recordable, password)
+
+    @staticmethod
+    def getPrivateKey() -> str:
+        return AuthenticatorModel._getPrivateKey()
+
+
 class AuthenticatorSetupModel:
     _setData = None
     _getData = None
