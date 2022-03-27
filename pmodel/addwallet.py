@@ -38,7 +38,7 @@ class AddWalletModel(addwallet.UiForm):
     @pyqtSlot(str)
     def password_changed(self, text: str):
         self.__isTyping = True
-        QTimer().singleShot(1000, lambda: self.__password_changed(text))
+        QTimer().singleShot(1500, lambda: self.__password_changed(text))
 
     def __password_changed(self, text: str):
         valid = False
@@ -60,7 +60,7 @@ class AddWalletModel(addwallet.UiForm):
     @pyqtSlot(str)
     def confirm_password_changed(self, text: str):
         self.__isTyping = True
-        QTimer().singleShot(1000, lambda: self.__confirm_password_changed(text))
+        QTimer().singleShot(1500, lambda: self.__confirm_password_changed(text))
 
     def __confirm_password_changed(self, text: str):
         valid = False

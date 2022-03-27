@@ -19,6 +19,9 @@ class AddNetworkModel(addnetwork.UiForm):
 
     def hideEvent(self, event: QHideEvent):
         super(AddNetworkModel, self).hideEvent(event)
+        if self.__addNetworkThread.isRunning():
+            return
+
         self.reset()
 
     @pyqtSlot(str)

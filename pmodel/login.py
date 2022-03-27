@@ -24,6 +24,9 @@ class LoginModel(login.UiForm):
 
     def showEvent(self, event: QShowEvent):
         super(LoginModel, self).showEvent(event)
+        if self.__loginThread.isRunning():
+            return
+
         wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
         self.reset()
         self.set_data(wallet_engine.username(), wallet_engine.address().value())
@@ -35,7 +38,7 @@ class LoginModel(login.UiForm):
     @pyqtSlot(str)
     def password_changed(self, text: str):
         self.__isTyping = True
-        QTimer().singleShot(1000, lambda: self.__password_changed(text))
+        QTimer().singleShot(1500, lambda: self.__password_changed(text))
 
     def __password_changed(self, text: str):
         valid = False
