@@ -1,18 +1,15 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import authenticator
 
 
-class AuthenticatorModel(authenticator.UiForm):
+class AuthenticatorModel(authenticator.UiForm, event.EventForm):
     def __init__(self, parent):
         super(AuthenticatorModel, self).__init__(parent)
 
         self.setup()
-
-        # Global Methods
-        globalmethods.AuthenticatorModel._forward = self.forward
-        globalmethods.AuthenticatorModel._getPrivateKey = self.get_private_key
+        self.events_listening()
 
         # Threading Methods
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
@@ -20,28 +17,22 @@ class AuthenticatorModel(authenticator.UiForm):
 
         # Variables
         self.__isTyping = False
-        self.__forwardTab = None
-        self.__forwardTabRecordable = None
+        self.__engine = None
+        self.__forward = None
         self.__passwordValue = None
-        self.__privateKeyValue = None
 
-    def hideEvent(self, event: QHideEvent):
-        super(AuthenticatorModel, self).hideEvent(event)
-        if self.__confirmThread.isRunning():
-            return
-
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
+        self.__engine = engine
+
+    def authenticator_forward_event(self, method, password: str = ''):
+        self.__forward = method
+        self.__passwordValue = password
+        event.mainTabChanged.notify(tab=Tab.AUTHENTICATOR, recordable=False)
 
     @pyqtSlot()
     def forgot_clicked(self):
-        wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
-        globalmethods.AuthenticatorSetupModel.setData(
-            username=wallet_engine.username(),
-            password=self.__passwordValue,
-            pin_code=wallet_engine.pin_code(),
-            address=wallet_engine.address().value()
-        )
-        globalmethods.MainModel.setCurrentTab(Tab.AUTHENTICATOR_SETUP, recordable=False)
+        event.mainTabChanged.notify(tab=Tab.AUTHENTICATOR_SETUP, recordable=False)
 
     @pyqtSlot(str)
     def otp_code_changed(self, text: str):
@@ -69,20 +60,23 @@ class AuthenticatorModel(authenticator.UiForm):
 
     def __confirm_clicked_core(self):
         result = ThreadingResult(
-            message=translator("The OTP code is wrong")
+            message=translator("The OTP code is wrong"),
+            params={
+                'privateKey': ''
+            }
         )
 
         try:
-            wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
-            if not wallet_engine.is_logged():
-                wallet_engine.login(self.__passwordValue, self.get_otp_code_text())
+            if not self.__engine.is_logged():
+                self.__engine.login(self.__passwordValue, self.get_otp_code_text())
 
-            self.__privateKeyValue = wallet_engine.private_key(self.get_otp_code_text())
-            if len(self.__privateKeyValue) == 66:
+            private_key = self.__engine.private_key(self.get_otp_code_text())
+            if private_key and len(private_key) == 66:
                 result.isValid = True
 
             if result.isValid:
                 result.message = translator("OTP code has been confirmed successfully")
+                result.params['privateKey'] = private_key
 
         except Exception as err:
             result.error(str(err))
@@ -92,22 +86,8 @@ class AuthenticatorModel(authenticator.UiForm):
 
     def __confirm_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.MainModel.setCurrentTab(
-                self.__forwardTab, recordable=self.__forwardTabRecordable
-            )
+            self.__forward(result.params['privateKey'])
+            event.walletEdited.notify()
 
         result.show_message()
         self.confirm_completed()
-
-    def forward(self, tab: str, recordable: bool = True, password: str = ''):
-        self.__forwardTab = tab
-        self.__forwardTabRecordable = recordable
-        self.__passwordValue = password
-        self.__privateKeyValue = ''
-        globalmethods.MainModel.setCurrentTab(Tab.AUTHENTICATOR, recordable=False)
-
-    def get_private_key(self) -> str:
-        result = self.__privateKeyValue
-        self.__passwordValue = None
-        self.__privateKeyValue = ''
-        return result

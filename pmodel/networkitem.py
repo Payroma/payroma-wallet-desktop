@@ -1,5 +1,5 @@
 from plibs import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import networkitem, fonts, styles, images, Size
 
 
@@ -52,7 +52,7 @@ class NetworkItem(networkitem.UiForm):
 
     @staticmethod
     def __remove_clicked_ui(result: ThreadingResult):
-        globalmethods.NetworksListModel.refresh()
+        event.networkEdited.notify()
         result.show_message()
 
     def interface(self) -> payromasdk.tools.interface.Network:

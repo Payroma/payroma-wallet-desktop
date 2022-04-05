@@ -1,17 +1,15 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import event, translator, ThreadingResult, ThreadingArea
 from pui import authenticatorscan
 
 
-class AuthenticatorScanModel(authenticatorscan.UiForm):
+class AuthenticatorScanModel(authenticatorscan.UiForm, event.EventForm):
     def __init__(self, parent):
         super(AuthenticatorScanModel, self).__init__(parent)
 
         self.setup()
-
-        # Global Methods
-        globalmethods.AuthenticatorScanModel._setData = self.set_data
+        self.events_listening()
 
         # Threading Methods
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
@@ -21,13 +19,14 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
         self.__isTyping = False
         self.__totp = None
 
-    def hideEvent(self, event: QHideEvent):
-        super(AuthenticatorScanModel, self).hideEvent(event)
+    def authenticator_setup_verified_event(self, username: str, otp_hash: str):
         self.reset()
+        self.set_data(username, otp_hash)
+        self.__totp = pyotp.TOTP(otp_hash)
 
     @pyqtSlot()
     def back_clicked(self):
-        globalmethods.AuthenticatorSetupModel.setCurrentTab(Tab.AuthenticatorSetupTab.VERIFICATION)
+        event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.VERIFICATION)
 
     @pyqtSlot(str)
     def otp_code_changed(self, text: str):
@@ -61,8 +60,7 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
         try:
             result.isValid = self.__totp.verify(self.get_otp_code_text())
             if result.isValid:
-                result.message = translator("OTP code has been confirmed successfully")
-                self.__add_new_wallet()
+                result.message = translator("Your OTP code has been confirmed successfully")
 
         except Exception as err:
             result.error(str(err))
@@ -72,22 +70,7 @@ class AuthenticatorScanModel(authenticatorscan.UiForm):
 
     def __confirm_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.AuthenticatorSetupModel.setCurrentTab(Tab.AuthenticatorSetupTab.FINISHED)
+            event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.FINISHED)
 
         result.show_message()
         self.confirm_completed()
-
-    def set_data(self, username: str, key: str):
-        super(AuthenticatorScanModel, self).set_data(username, key)
-        self.__totp = pyotp.TOTP(key)
-
-    def __add_new_wallet(self):
-        username, password, pin_code, _ = globalmethods.AuthenticatorSetupModel.getData()
-        is_exists = any(username == i.username for i in payromasdk.engine.wallet.get_all())
-        if not is_exists:
-            payromasdk.engine.wallet.add_new(
-                username=username,
-                password=password,
-                pin_code=pin_code,
-                otp_code=self.get_otp_code_text()
-            )

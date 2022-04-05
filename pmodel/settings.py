@@ -1,19 +1,17 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import settings, styles, images, Size
 
 
-class SettingsModel(settings.UiForm):
+class SettingsModel(settings.UiForm, event.EventForm):
     def __init__(self, parent):
         super(SettingsModel, self).__init__(parent)
 
         self.setup()
+        self.events_listening()
 
         # Threading Methods
-        self.__networkDetectionThread = ThreadingArea(self.__network_detection_core)
-        self.__networkDetectionThread.signal.resultSignal.connect(self.__network_detection_ui)
-
         self.__backupThread = ThreadingArea(self.__backup_clicked_core)
         self.__backupThread.signal.resultSignal.connect(self.__backup_clicked_ui)
 
@@ -25,19 +23,18 @@ class SettingsModel(settings.UiForm):
         self.__backupPassword = None
         self.__backupFilePath = None
 
-    def showEvent(self, event: QShowEvent):
-        super(SettingsModel, self).showEvent(event)
-        self.__networkDetectionThread.start()
+    def network_changed_event(self, name: str, status: bool):
+        self.set_data(status, name)
 
     @pyqtSlot(bool)
     def switch_clicked(self, state: bool):
         theme_name = 'dark' if state else ''
-        globalmethods.MainModel.setThemeMode(theme_name)
+        event.themeChanged.notify(name=theme_name)
         Global.settings.update_option(SettingsOption.themeName, theme_name)
 
     @pyqtSlot()
     def network_clicked(self):
-        globalmethods.MainModel.setCurrentTab(Tab.NETWORKS_LIST)
+        event.mainTabChanged.notify(tab=Tab.NETWORKS_LIST)
 
     @pyqtSlot()
     def backup_clicked(self):
@@ -189,7 +186,8 @@ class SettingsModel(settings.UiForm):
 
     def __import_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.MainModel.setCurrentTab(Tab.WALLETS_LIST)
+            event.walletEdited.notify()
+            event.mainTabChanged.notify(tab=Tab.WALLETS_LIST)
 
         result.show_message()
         self.import_completed()
@@ -206,25 +204,3 @@ class SettingsModel(settings.UiForm):
         messagebox.labelMessage.setAlignment(Qt.AlignCenter)
         messagebox.exec_()
         self.__backupPassword = messagebox.password
-
-    def __network_detection_core(self):
-        result = ThreadingResult(
-            message=translator("Unable to connect, make sure you are connected to the internet"),
-            params={
-                'isConnected': False,
-                'networkName': payromasdk.MainProvider.interface.name
-            }
-        )
-
-        try:
-            result.isValid = result.params['isConnected'] = payromasdk.MainProvider.is_connected()
-        except Exception as err:
-            result.error(str(err))
-
-        self.__networkDetectionThread.signal.resultSignal.emit(result)
-
-    def __network_detection_ui(self, result: ThreadingResult):
-        self.set_data(result.params['isConnected'], result.params['networkName'])
-
-        if not result.isValid:
-            result.show_message()

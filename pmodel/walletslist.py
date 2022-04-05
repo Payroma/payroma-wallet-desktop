@@ -1,35 +1,32 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk
+from pcontroller import payromasdk, event
 from pui import walletslist
 from pmodel import walletitem
 
 
-class WalletsListModel(walletslist.UiForm):
+class WalletsListModel(walletslist.UiForm, event.EventForm):
     def __init__(self, parent):
         super(WalletsListModel, self).__init__(parent)
 
         self.setup()
+        self.events_listening()
 
-        # Global Methods
-        globalmethods.WalletsListModel._currentWalletEngine = self.current_wallet_engine
+    def app_started_event(self):
+        self.refresh()
 
-        # Variables
-        self.__currentWalletEngine = None
-
-    def showEvent(self, event: QShowEvent):
-        super(WalletsListModel, self).showEvent(event)
+    def wallet_edited_event(self):
         self.refresh()
 
     @pyqtSlot()
     def add_new_clicked(self):
-        globalmethods.MainModel.setCurrentTab(Tab.ADD_WALLET)
+        event.mainTabChanged.notify(tab=Tab.ADD_WALLET)
 
     @pyqtSlot(QListWidgetItem)
     def item_clicked(self, item: QListWidgetItem):
         widget = super(WalletsListModel, self).item_clicked(item)
-        self.__currentWalletEngine = widget.engine()
-        globalmethods.LoginModel.forward(Tab.WALLET)
+        event.walletChanged.notify(engine=widget.engine())
+        event.loginForward.notify(method=self.__authenticator_forward)
 
     def refresh(self):
         self.reset()
@@ -46,5 +43,6 @@ class WalletsListModel(walletslist.UiForm):
 
             self.add_item(item)
 
-    def current_wallet_engine(self) -> payromasdk.engine.wallet.WalletEngine:
-        return self.__currentWalletEngine
+    @staticmethod
+    def __authenticator_forward(private_key: str):
+        event.mainTabChanged.notify(tab=Tab.WALLET)

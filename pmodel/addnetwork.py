@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import addnetwork
 
 
@@ -17,8 +17,8 @@ class AddNetworkModel(addnetwork.UiForm):
         # Variables
         self.__isTyping = False
 
-    def hideEvent(self, event: QHideEvent):
-        super(AddNetworkModel, self).hideEvent(event)
+    def showEvent(self, a0: QShowEvent):
+        super(AddNetworkModel, self).showEvent(a0)
         if self.__addNetworkThread.isRunning():
             return
 
@@ -145,7 +145,8 @@ class AddNetworkModel(addnetwork.UiForm):
 
     def __add_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.MainModel.setCurrentTab(Tab.NETWORKS_LIST)
+            event.networkEdited.notify()
+            event.mainTabChanged.notify(tab=Tab.NETWORKS_LIST)
 
         result.show_message()
         self.add_completed()

@@ -1,14 +1,15 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import authenticatorverification
 
 
-class AuthenticatorVerificationModel(authenticatorverification.UiForm):
+class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.EventForm):
     def __init__(self, parent):
         super(AuthenticatorVerificationModel, self).__init__(parent)
 
         self.setup()
+        self.events_listening()
 
         # Threading Methods
         self.__verifyThread = ThreadingArea(self.__verify_clicked_core)
@@ -16,16 +17,35 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
 
         # Variables
         self.__isTyping = False
+        self.__engine = None
 
-    def showEvent(self, event: QShowEvent):
-        super(AuthenticatorVerificationModel, self).showEvent(event)
-        username, _, _, address = globalmethods.AuthenticatorSetupModel.getData()
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
-        self.set_data(username, address)
+        self.set_data(engine.username(), engine.address().value())
+        self.__engine = engine
 
     @pyqtSlot()
     def back_clicked(self):
-        globalmethods.AuthenticatorSetupModel.setCurrentTab(Tab.AuthenticatorSetupTab.DOWNLOAD)
+        event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.DOWNLOAD)
+
+    @pyqtSlot(str)
+    def password_changed(self, text: str):
+        self.__isTyping = True
+        QTimer().singleShot(1500, lambda: self.__password_changed(text))
+
+    def __password_changed(self, text: str):
+        valid = False
+        if text != self.get_password_text():
+            return
+
+        if text:
+            if self.get_strength_text() in [
+                SPInputmanager.StrengthState.good.text, SPInputmanager.StrengthState.excellent.text
+            ]:
+                valid = True
+
+        self.__isTyping = False
+        super(AuthenticatorVerificationModel, self).password_changed(text, valid)
 
     @pyqtSlot(str)
     def pin_code_changed(self, text: str):
@@ -53,34 +73,30 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
 
     def __verify_clicked_core(self):
         result = ThreadingResult(
-            message=translator("This wallet's PIN code doesn't match"),
+            message=translator("Password or PIN code doesn't match"),
             params={
                 'username': '',
-                'key': ''
+                'OTPHash': ''
             }
         )
 
         try:
-            username, password, pin_code, address = globalmethods.AuthenticatorSetupModel.getData()
-            otp_hash = payromasdk.tools.walletcreator.otp_hash(username, password, self.get_pin_code_text())
+            otp_hash = payromasdk.tools.walletcreator.otp_hash(
+                self.__engine.username(), self.get_password_text(), self.get_pin_code_text()
+            )
+            otp_code = pyotp.TOTP(otp_hash).now()
 
-            if isinstance(pin_code, str):
-                result.isValid = (self.get_pin_code_text() == pin_code)
-            elif isinstance(pin_code, bytes):
-                otp_code = pyotp.TOTP(otp_hash).now()
-                try:
-                    address_, _, pin_code_ = payromasdk.tools.walletcreator.access(
-                        username, password, pin_code, otp_code
-                    )
-                    if address_.value() == address and pin_code_ == pin_code:
-                        result.isValid = True
-                except TypeError:
-                    pass
+            if self.__engine.login(
+                password=self.get_password_text(),
+                otp_code=otp_code
+            ):
+                self.__engine.logout()
+                result.isValid = True
 
             if result.isValid:
-                result.message = translator("PIN code has been confirmed successfully")
-                result.params['username'] = username
-                result.params['key'] = otp_hash
+                result.message = translator("Let's scan and confirm your OTP code")
+                result.params['username'] = self.__engine.username()
+                result.params['OTPHash'] = otp_hash
 
         except Exception as err:
             result.error(str(err))
@@ -90,11 +106,10 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm):
 
     def __verify_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.AuthenticatorScanModel.setData(
-                username=result.params['username'], key=result.params['key']
+            event.authenticatorSetupVerified.notify(
+                username=result.params['username'], otp_hash=result.params['OTPHash']
             )
-            globalmethods.AuthenticatorFinishedModel.setData(key=result.params['key'])
-            globalmethods.AuthenticatorSetupModel.setCurrentTab(Tab.AuthenticatorSetupTab.SCAN)
+            event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.SCAN)
 
         result.show_message()
         self.verify_completed()

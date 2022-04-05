@@ -1,17 +1,15 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import login
 
 
-class LoginModel(login.UiForm):
+class LoginModel(login.UiForm, event.EventForm):
     def __init__(self, parent):
         super(LoginModel, self).__init__(parent)
 
         self.setup()
-
-        # Global Methods
-        globalmethods.LoginModel._forward = self.forward
+        self.events_listening()
 
         # Threading Methods
         self.__loginThread = ThreadingArea(self.__login_clicked_core)
@@ -19,21 +17,24 @@ class LoginModel(login.UiForm):
 
         # Variables
         self.__isTyping = False
-        self.__forwardTab = None
-        self.__forwardTabRecordable = None
+        self.__engine = None
+        self.__forward = None
 
-    def showEvent(self, event: QShowEvent):
-        super(LoginModel, self).showEvent(event)
-        if self.__loginThread.isRunning():
-            return
-
-        wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
-        self.set_data(wallet_engine.username(), wallet_engine.address().value())
+        self.set_data(engine.username(), engine.address().value())
+        self.__engine = engine
+
+    def login_forward_event(self, method):
+        self.__forward = method
+        if self.__engine.is_logged():
+            self.__forward('')
+        else:
+            event.mainTabChanged.notify(tab=Tab.LOGIN, recordable=False)
 
     @pyqtSlot()
     def skip_clicked(self):
-        globalmethods.MainModel.setCurrentTab(Tab.WALLET)
+        event.mainTabChanged.notify(tab=Tab.WALLET)
 
     @pyqtSlot(str)
     def password_changed(self, text: str):
@@ -68,10 +69,9 @@ class LoginModel(login.UiForm):
         )
 
         try:
-            wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
-            username = wallet_engine.username()
+            username = self.__engine.username()
             password = self.get_password_text()
-            pin_code = wallet_engine.pin_code()
+            pin_code = self.__engine.pin_code()
             otp_code = pyotp.TOTP(payromasdk.tools.walletcreator.otp_hash(username, password, '')).now()
 
             if not payromasdk.tools.walletcreator.access(username, password, pin_code, otp_code):
@@ -85,23 +85,8 @@ class LoginModel(login.UiForm):
 
     def __login_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
-            globalmethods.AuthenticatorModel.forward(
-                tab=self.__forwardTab,
-                recordable=self.__forwardTabRecordable,
-                password=self.get_password_text()
-            )
+            event.authenticatorForward.notify(method=self.__forward, password=self.get_password_text())
         else:
             result.show_message()
 
         self.login_completed()
-
-    def forward(self, tab: str, recordable: bool = True):
-        self.__forwardTab = tab
-        self.__forwardTabRecordable = recordable
-        wallet_engine = globalmethods.WalletsListModel.currentWalletEngine()
-
-        if not wallet_engine.is_logged():
-            tab = Tab.LOGIN
-            recordable = False
-
-        globalmethods.MainModel.setCurrentTab(tab, recordable=recordable)

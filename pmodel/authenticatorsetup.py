@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods
+from pcontroller import event
 from pui import authenticatorsetup
 from pmodel.authenticatordownload import AuthenticatorDownloadModel
 from pmodel.authenticatorverification import AuthenticatorVerificationModel
@@ -8,16 +8,12 @@ from pmodel.authenticatorscan import AuthenticatorScanModel
 from pmodel.authenticatorfinished import AuthenticatorFinishedModel
 
 
-class AuthenticatorSetupModel(authenticatorsetup.UiForm):
+class AuthenticatorSetupModel(authenticatorsetup.UiForm, event.EventForm):
     def __init__(self, parent):
         super(AuthenticatorSetupModel, self).__init__(parent)
 
         self.setup()
-
-        # Global Methods
-        globalmethods.AuthenticatorSetupModel._setData = self.set_data
-        globalmethods.AuthenticatorSetupModel._getData = self.get_data
-        globalmethods.AuthenticatorSetupModel._setCurrentTab = self.set_current_tab
+        self.events_listening()
 
         # Tabs
         self.add_tab(AuthenticatorDownloadModel(self), Tab.AuthenticatorSetupTab.DOWNLOAD)
@@ -25,21 +21,9 @@ class AuthenticatorSetupModel(authenticatorsetup.UiForm):
         self.add_tab(AuthenticatorScanModel(self), Tab.AuthenticatorSetupTab.SCAN)
         self.add_tab(AuthenticatorFinishedModel(self), Tab.AuthenticatorSetupTab.FINISHED)
 
-        # Variables
-        self.__usernameValue = ''
-        self.__passwordValue = ''
-        self.__PINCodeValue = ''
-        self.__addressValue = ''
-
-    def showEvent(self, event: QShowEvent):
-        super(AuthenticatorSetupModel, self).showEvent(event)
+    def showEvent(self, a0: QShowEvent):
+        super(AuthenticatorSetupModel, self).showEvent(a0)
         self.reset()
 
-    def set_data(self, username: str, password: str, pin_code: Union[str, bytes], address: str = ''):
-        self.__usernameValue = username
-        self.__passwordValue = password
-        self.__PINCodeValue = pin_code
-        self.__addressValue = address
-
-    def get_data(self) -> tuple[str, str, Union[str, bytes], str]:
-        return self.__usernameValue, self.__passwordValue, self.__PINCodeValue, self.__addressValue
+    def authenticator_setup_tab_changed_event(self, tab: str):
+        self.set_current_tab(tab)

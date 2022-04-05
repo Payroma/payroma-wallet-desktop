@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import globalmethods, payromasdk, translator
+from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import addwallet, styles
 
 
@@ -10,11 +10,18 @@ class AddWalletModel(addwallet.UiForm):
 
         self.setup()
 
+        # Threading Methods
+        self.__addWalletThread = ThreadingArea(self.__add_clicked_core)
+        self.__addWalletThread.signal.resultSignal.connect(self.__add_clicked_ui)
+
         # Variables
         self.__isTyping = False
 
-    def hideEvent(self, event: QHideEvent):
-        super(AddWalletModel, self).hideEvent(event)
+    def showEvent(self, a0: QShowEvent):
+        super(AddWalletModel, self).showEvent(a0)
+        if self.__addWalletThread.isRunning():
+            return
+
         self.reset()
 
     @pyqtSlot(str)
@@ -92,10 +99,8 @@ class AddWalletModel(addwallet.UiForm):
 
     @pyqtSlot()
     def add_clicked(self):
-        if self.__isTyping:
+        if self.__isTyping or self.__addWalletThread.isRunning():
             return
-
-        super(AddWalletModel, self).add_clicked()
 
         title = translator("Please note that:")
         description1 = translator("Username and password are sensitive to characters.")
@@ -118,13 +123,64 @@ class AddWalletModel(addwallet.UiForm):
         messagebox.labelMessage.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         messagebox.exec_()
 
-        if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
-            globalmethods.AuthenticatorSetupModel.setData(
+        if messagebox.clickedOn is not SPGraphics.Button.ACCEPT:
+            return
+
+        super(AddWalletModel, self).add_clicked()
+        self.__addWalletThread.start()
+
+    def __add_clicked_core(self):
+        result = ThreadingResult(
+            message=translator("Failed to add wallet, Please try again"),
+            params={
+                'engine': None
+            }
+        )
+
+        try:
+            address = None
+            otp_hash = payromasdk.tools.walletcreator.otp_hash(
                 username=self.get_username_text(),
                 password=self.get_password_text(),
                 pin_code=self.get_pin_code_text()
             )
-            globalmethods.MainModel.setCurrentTab(Tab.AUTHENTICATOR_SETUP, recordable=False)
-            QApplication.quickNotification.information(translator("Authenticator setup required to access"))
+            otp_code = pyotp.TOTP(otp_hash).now()
 
+            if payromasdk.engine.wallet.add_new(
+                    username=self.get_username_text(),
+                    password=self.get_password_text(),
+                    pin_code=self.get_pin_code_text(),
+                    otp_code=otp_code
+            ):
+                try:
+                    address, _, _ = payromasdk.tools.walletcreator.access(
+                        username=self.get_username_text(),
+                        password=self.get_password_text(),
+                        pin_code=self.get_pin_code_text(),
+                        otp_code=otp_code
+                    )
+                    result.isValid = True
+                except TypeError:
+                    pass
+
+            if result.isValid:
+                result.message = translator("Let's setup your 2FA code")
+                for wallet in payromasdk.engine.wallet.get_all():
+                    if wallet.address.value() == address.value():
+                        result.params['engine'] = payromasdk.engine.wallet.WalletEngine(wallet)
+                        break
+
+        except Exception as err:
+            result.error(str(err))
+
+        time.sleep(3)
+        self.__addWalletThread.signal.resultSignal.emit(result)
+
+    def __add_clicked_ui(self, result: ThreadingResult):
+        if result.isValid:
+            event.walletEdited.notify()
+            event.walletChanged.notify(engine=result.params['engine'])
+            event.mainTabChanged.notify(tab=Tab.AUTHENTICATOR_SETUP, recordable=False)
+
+        result.show_message()
         self.add_completed()

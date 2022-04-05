@@ -1,2 +1,2 @@
 # Payroma Wallet Desktop Application
-Payroma wallet full appliaction
+Payroma wallet full application
