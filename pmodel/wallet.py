@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import event
+from pcontroller import payromasdk, event
 from pui import wallet
 from pmodel.tokenslist import TokensListModel
 from pmodel.walletdetails import WalletDetailsModel
@@ -19,9 +19,13 @@ class WalletModel(wallet.UiForm, event.EventForm):
         self.add_tab(WalletDetailsModel(self), Tab.WalletTab.WALLET_DETAILS)
         self.add_tab(AddTokenModel(self), Tab.WalletTab.ADD_TOKEN)
 
-    def wallet_changed_event(self, username: str, address: str):
+        # Variables
+        self.__engine = None
+
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
-        self.set_data(username, address)
+        self.set_data(engine.username(), engine.address().value())
+        self.__engine = engine
 
     def wallet_tab_changed_event(self, tab: str):
         self.set_current_tab(tab)
