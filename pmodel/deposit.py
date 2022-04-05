@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import event
+from pcontroller import payromasdk, event
 from pui import deposit
 
 
@@ -12,23 +12,21 @@ class DepositModel(deposit.UiForm, event.EventForm):
         self.events_listening()
 
         # Variables
-        self.__address = None
-        self.__networkName = None
+        self.__engine = None
 
-    def wallet_changed_event(self, username: str, address: str):
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
-        self.set_data(address, self.__networkName)
-        self.__address = address
+        self.set_data(engine.address().value(), payromasdk.MainProvider.interface.name)
+        self.__engine = engine
 
     def network_changed_event(self, name: str, status: bool):
         self.reset()
 
         address = ''
-        if self.__address:
-            address = self.__address
+        if self.__engine:
+            address = self.__engine.address().value()
 
         self.set_data(address, name)
-        self.__networkName = name
 
     @pyqtSlot()
     def network_clicked(self):
