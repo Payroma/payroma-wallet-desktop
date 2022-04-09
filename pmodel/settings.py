@@ -1,3 +1,5 @@
+import SPDatabase
+
 from plibs import *
 from pheader import *
 from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
@@ -166,7 +168,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
             for attempt in range(2):
                 try:
                     result.isValid = payromasdk.engine.wallet.import_wallets(
-                        path=self.__backupFilePath, password=self.__backupPassword
+                        path=self.__backupFilePath, password=self.__backupPassword, mode=SPDatabase.Control.SET
                     )
                     if result.isValid:
                         result.message = translator("Import completed successfully")
