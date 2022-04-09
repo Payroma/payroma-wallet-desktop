@@ -25,6 +25,7 @@ import pickle
 import struct
 import psutil
 import hashlib
+import requests
 import platform
 import pyqrcode
 import webbrowser
