@@ -62,10 +62,10 @@ class TokenItem(tokenitem.UiForm):
 
     def set_master(self):
         super(TokenItem, self).set_master()
-        current_network = payromasdk.MainProvider.interface
         self.isMaster = True
-        self.set_name(current_network.symbol)
-        self.set_symbol(current_network.symbol)
+        self.__tokenEngine = payromasdk.MainProvider
+        self.set_name(self.__tokenEngine.interface.symbol)
+        self.set_symbol(self.__tokenEngine.interface.symbol)
 
     def engine(self) -> payromasdk.engine.token.TokenEngine:
         return self.__tokenEngine

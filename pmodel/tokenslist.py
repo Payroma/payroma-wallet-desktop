@@ -48,11 +48,13 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
 
         self.reset()
 
+        # Network coin
         item = tokenitem.TokenItem(self)
         item.set_master()
         self.add_item(item)
         self.__tokenItems.append(item)
 
+        # Wallet tokens
         for token in self.__engine.tokens():
             item = tokenitem.TokenItem(self)
             item.set_engine(
@@ -68,28 +70,25 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         QTimer().singleShot(100, self.repaint)
 
     def __balance_update_core(self):
-        result = ThreadingResult()
+        result = ThreadingResult(
+            message=translator("Unable to connect, make sure you are connected to the internet")
+        )
 
         while True:
             try:
                 for token in self.__tokenItems:
-                    if not token.isMaster:
-                        engine = token.engine()
-                    else:
-                        engine = payromasdk.MainProvider
-
                     self.__balanceUpdateThread.signal.resultSignal.emit(ThreadingResult(
                         is_valid=True,
                         params={
                             'token': token,
-                            'balance': engine.balance_of(self.__engine.address())
+                            'balance': token.engine().balance_of(self.__engine.address())
                         }
                     ))
 
                 continue
 
             except requests.exceptions.ConnectionError:
-                result.message = translator("Unable to connect, make sure you are connected to the internet")
+                pass
 
             except Exception as err:
                 result.error(str(err))
