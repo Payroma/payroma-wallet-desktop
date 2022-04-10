@@ -1,5 +1,5 @@
 from plibs import *
-from pcontroller import event
+from pcontroller import payromasdk, event
 from pui import addressesbooklist
 from pmodel import addressbookitem
 
@@ -23,19 +23,15 @@ class AddressesBookListModel(addressesbooklist.UiForm, event.EventForm):
     @pyqtSlot(QListWidgetItem)
     def item_clicked(self, item: QListWidgetItem):
         widget = super(AddressesBookListModel, self).item_clicked(item)
-        event.withdrawAddressChanged.notify(address=widget.get_address())
+        event.withdrawAddressChanged.notify(address=widget.interface().address.value())
 
     def refresh(self):
         self.reset()
 
-        # Test
-        wallets = {
-            '0x0000000000000000000000000000000000000000': 'Wallet1',
-            '0x0000000000000000000000000000000000000001': 'Wallet2'
-        }
-        for address, username in wallets.items():
+        for wallet in payromasdk.engine.addressbook.get_all():
             item = addressbookitem.AddressBookItem(self)
-            item.set_username(username)
-            item.set_address(address)
+            item.set_interface(wallet)
 
             self.add_item(item)
+
+        QTimer().singleShot(100, self.repaint)
