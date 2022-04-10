@@ -1,9 +1,7 @@
-import SPDatabase
-
 from plibs import *
 from pheader import *
 from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
-from pui import settings, styles, images, Size
+from pui import settings, fonts, images, styles, Size
 
 
 class SettingsModel(settings.UiForm, event.EventForm):
@@ -198,8 +196,8 @@ class SettingsModel(settings.UiForm, event.EventForm):
         messagebox = SPGraphics.MessageBoxPassword(
             parent=self,
             text=translator("Password confirmation is required."),
-            font_size=settings.fonts.data.size.title,
-            color=settings.styles.data.colors.font.name(),
+            font_size=fonts.data.size.title,
+            color=styles.data.colors.font.name(),
             window_size=Size.messageBox
         )
         messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
