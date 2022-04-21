@@ -13,6 +13,10 @@ class Metadata:
     DATA = 'data'
     NONCE = 'nonce'
     CHAIN_ID = 'chainId'
+    ESTIMATED_GAS = 'estimatedGas'
+    MAX_FEE = 'maxFee'
+    TOTAL = 'total'
+    MAX_AMOUNT = 'maxAmount'
 
 
 class EIP1559Metadata:
@@ -59,25 +63,36 @@ class __Provider(object):
 
     def add_gas(
             self, tx_data: dict, eip1559_enabled: bool = False, rate: str = EIP1559Metadata.MEDIUM
-    ) -> interface.WeiAmount:
+    ) -> dict:
+        self.__remove_fee(tx_data)
         gas_limit = self.web3.eth.estimate_gas(tx_data)
 
         if eip1559_enabled:
             tx_data.update(
                 self.__estimate_gas_eip1559()[rate]
             )
-            price = gas_limit * tx_data[Metadata.MAX_FEE_PER_GAS]
+            estimated_gas = gas_limit * tx_data.pop(Metadata.ESTIMATED_GAS)
+            max_fee = gas_limit * tx_data[Metadata.MAX_FEE_PER_GAS]
         else:
             tx_data.update({
                 Metadata.GAS_PRICE: self.web3.eth.gas_price
             })
-            price = gas_limit * tx_data[Metadata.GAS_PRICE]
+            estimated_gas = gas_limit * tx_data[Metadata.GAS_PRICE]
+            max_fee = estimated_gas
+
+        total = estimated_gas + tx_data[Metadata.VALUE]
+        max_amount = max_fee + tx_data[Metadata.VALUE]
 
         tx_data.update({
             Metadata.GAS: gas_limit
         })
 
-        return interface.WeiAmount(price, decimals=18)
+        return {
+            Metadata.ESTIMATED_GAS: interface.WeiAmount(value=estimated_gas, decimals=18),
+            Metadata.MAX_FEE: interface.WeiAmount(value=max_fee, decimals=18),
+            Metadata.TOTAL: interface.WeiAmount(value=total, decimals=18),
+            Metadata.MAX_AMOUNT: interface.WeiAmount(value=max_amount, decimals=18)
+        }
 
     def send_transaction(self, tx_data: dict, private_key: str) -> interface.TXHash:
         signed_txn = self.web3.eth.account.sign_transaction(tx_data, private_key=private_key)
@@ -96,8 +111,18 @@ class __Provider(object):
         except exceptions.TransactionNotFound:
             return datastructures.AttributeDict(dict())
 
+    @staticmethod
+    def __remove_fee(tx_data: dict):
+        for param in [
+            Metadata.GAS, Metadata.GAS_PRICE, Metadata.MAX_PRIORITY_FEE_PER_GAS, Metadata.MAX_FEE_PER_GAS
+        ]:
+            try:
+                del tx_data[param]
+            except KeyError:
+                continue
+
     def __fee_history(self) -> list:
-        historical_blocks = 4
+        historical_blocks = 10
         fee_history = self.web3.eth.fee_history(historical_blocks, 'pending', [25, 50, 75])
         oldest_block = fee_history.oldestBlock
         latest_block = oldest_block + historical_blocks
@@ -120,14 +145,16 @@ class __Provider(object):
         for index, rate in enumerate(rates):
             all_priority_fee = [i[EIP1559Metadata.PRIORITY_FEE_PER_GAS][index] for i in fee_history]
             priority_fee = max(all_priority_fee)
-            max_fee = 2 * base_fee + priority_fee
+            estimated_gas = int(0.9 * base_fee + priority_fee)
+            max_fee = int(1.5 * estimated_gas)
             if priority_fee >= max_fee or priority_fee <= 0:
                 raise ValueError("Max fee must exceed the priority fee")
 
             result.update({
                 rate: {
                     Metadata.MAX_PRIORITY_FEE_PER_GAS: priority_fee,
-                    Metadata.MAX_FEE_PER_GAS: max_fee,
+                    Metadata.ESTIMATED_GAS: estimated_gas,
+                    Metadata.MAX_FEE_PER_GAS: max_fee
                 }
             })
 
@@ -154,7 +181,7 @@ class _PNSProvider(__Provider):
         return self.__contract
 
     def set_contract(self, address: interface.Address):
-        self. __contract = address
+        self.__contract = address
 
 
 MainProvider = _MainProvider()

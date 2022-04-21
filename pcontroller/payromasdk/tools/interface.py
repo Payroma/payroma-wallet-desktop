@@ -98,11 +98,11 @@ class WeiAmount(object):
     def to_ether(self) -> float:
         return self.__ether
 
-    def to_ether_string(self, currency_format: bool = True) -> str:
+    def to_ether_string(self, currency_format: bool = True, length: int = 8) -> str:
         if self.__ether > 999 and currency_format:
-            return '{:,}.{}'.format(int(self.__int), self.__decimals)
+            return '{:,}.{}'.format(int(self.__int), self.__decimals[:length])
         elif self.__ether > 0 or not currency_format:
-            return '{}.{}'.format(self.__int, self.__decimals)
+            return '{}.{}'.format(self.__int, self.__decimals[:length])
 
         # in case integer = 0
         return self.__int

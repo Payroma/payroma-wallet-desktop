@@ -10,7 +10,7 @@
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -48,7 +48,7 @@
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -73,7 +73,7 @@
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -89,7 +89,7 @@
 				"type": "address"
 			}
 		],
-		"name": "TransferName",
+		"name": "TransferUsername",
 		"type": "event"
 	},
 	{
@@ -98,7 +98,7 @@
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -150,7 +150,7 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			}
 		],
@@ -179,7 +179,7 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			}
 		],
@@ -198,7 +198,7 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			}
 		],
@@ -217,18 +217,12 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			}
 		],
 		"name": "newRecord",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -266,13 +260,7 @@
 			}
 		],
 		"name": "reserveUsers",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -295,13 +283,7 @@
 			}
 		],
 		"name": "setMultiScammers",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -319,13 +301,7 @@
 			}
 		],
 		"name": "setMultiVerified",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -333,7 +309,7 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -348,13 +324,7 @@
 			}
 		],
 		"name": "setScammer",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -362,7 +332,7 @@
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "name",
+				"name": "username",
 				"type": "string"
 			},
 			{
@@ -372,32 +342,7 @@
 			}
 		],
 		"name": "setVerified",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferName",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -410,6 +355,19 @@
 			}
 		],
 		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferUsername",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

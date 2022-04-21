@@ -1,5 +1,5 @@
-from .provider import MainProvider
-from ..abis import stakeABI
+from .provider import MainProvider, Metadata
+from ..abis import tokenABI, stakeABI
 from ..tools import interface
 
 
@@ -10,6 +10,11 @@ class StakeEngine(object):
         self.contract = MainProvider.web3.eth.contract(
             address=stake_interface.contract.value(), abi=stakeABI
         )
+        self.latestTransactionDetails = {
+            'abi': {},
+            'args': {},
+            'data': b''
+        }
 
     def owner(self) -> interface.Address:
         return interface.Address(self.contract.functions.owner().call())
@@ -172,7 +177,48 @@ class StakeEngine(object):
         if not isinstance(self.sender, interface.Address):
             raise ValueError("The sender must not be a zero address")
 
-        return method.buildTransaction({'from': self.sender.value()})
+        abi = method.abi
+        abi_name = abi['name']
+        args = {}
+
+        # Get args
+        for index, npt in enumerate(abi['inputs']):
+            npt_name = npt['name']
+            npt_type = npt['type']
+
+            try:
+                value = method.args[index]
+            except IndexError:
+                args[npt_name] = None
+                continue
+
+            if npt_type == 'address':
+                args[npt_name] = interface.Address(value)
+            elif npt_type == 'uint256' and npt_name in ['_poolLimitPerUser', '_amount']:
+                args[npt_name] = interface.WeiAmount(
+                    value=value, decimals=self.interface.stakeToken.decimals
+                )
+            elif npt_type == 'uint256' and npt_name in ['_rewardPerBlock', '_rewardAmount']:
+                args[npt_name] = interface.WeiAmount(
+                    value=value, decimals=self.interface.rewardToken.decimals
+                )
+            elif npt_type == 'uint256' and abi_name == 'recoverWrongTokens':
+                contract = MainProvider.web3.eth.contract(
+                    address=args['_tokenAddress'].value(), abi=tokenABI
+                )
+                args[npt_name] = interface.WeiAmount(
+                    value=value, decimals=contract.functions.decimals().call()
+                )
+            else:
+                args[npt_name] = value
+
+        tx = method.buildTransaction({'from': self.sender.value()})
+        tx[Metadata.NONCE] = MainProvider.web3.eth.get_transaction_count(self.sender.value())
+        self.latestTransactionDetails.update({
+            'abi': abi, 'args': args, 'data': tx['data']
+        })
+
+        return tx
 
 
 __all__ = ['StakeEngine']

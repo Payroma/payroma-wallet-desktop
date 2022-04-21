@@ -1,4 +1,4 @@
-from .provider import MainProvider
+from .provider import MainProvider, Metadata
 from ..abis import tokenABI
 from ..tools import interface
 
@@ -10,6 +10,11 @@ class TokenEngine(object):
         self.contract = MainProvider.web3.eth.contract(
             address=token_interface.contract.value(), abi=tokenABI
         )
+        self.latestTransactionDetails = {
+            'abi': {},
+            'args': {},
+            'data': b''
+        }
 
     def name(self) -> str:
         return self.contract.functions.name().call()
@@ -69,7 +74,42 @@ class TokenEngine(object):
         if not isinstance(self.sender, interface.Address):
             raise ValueError("The sender must not be a zero address")
 
-        return method.buildTransaction({'from': self.sender.value()})
+        abi = method.abi
+        args = {}
+
+        # Get args
+        for index, npt in enumerate(abi['inputs']):
+            npt_name = npt['name']
+            npt_type = npt['type']
+
+            try:
+                value = method.args[index]
+            except IndexError:
+                args[npt_name] = None
+                continue
+
+            if npt_type == 'address':
+                args[npt_name] = interface.Address(value)
+            elif npt_type == 'uint256':
+                args[npt_name] = interface.WeiAmount(value=value, decimals=self.interface.decimals)
+            elif npt_type == 'address[]':
+                args[npt_name] = [interface.Address(address) for address in value]
+            elif npt_type == 'uint256[]':
+                args[npt_name] = [
+                    interface.WeiAmount(
+                        value=amount, decimals=self.interface.decimals
+                    ) for amount in value
+                ]
+            else:
+                args[npt_name] = value
+
+        tx = method.buildTransaction({'from': self.sender.value()})
+        tx[Metadata.NONCE] = MainProvider.web3.eth.get_transaction_count(self.sender.value())
+        self.latestTransactionDetails.update({
+            'abi': abi, 'args': args, 'data': tx['data']
+        })
+
+        return tx
 
 
 class PayromaTokenEngine(TokenEngine):
