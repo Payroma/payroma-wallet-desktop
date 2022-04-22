@@ -175,6 +175,13 @@ class _MainProvider(__Provider):
     def block_number(self) -> int:
         return self.web3.eth.block_number
 
+    def is_ethereum(self) -> bool:
+        if self.interface:
+            if '.infura.io/v3' in self.interface.rpc and self.interface.symbol == 'ETH':
+                return True
+
+        return False
+
 
 class _PNSProvider(__Provider):
     def contract(self) -> interface.Address:
