@@ -17,12 +17,12 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
 
         # Variables
         self.__isTyping = False
-        self.__engine = None
+        self.__currentWalletEngine = None
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
         self.set_data(engine.username(), engine.address().value())
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     @pyqtSlot()
     def back_clicked(self):
@@ -82,20 +82,20 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
 
         try:
             otp_hash = payromasdk.tools.walletcreator.otp_hash(
-                self.__engine.username(), self.get_password_text(), self.get_pin_code_text()
+                self.__currentWalletEngine.username(), self.get_password_text(), self.get_pin_code_text()
             )
             otp_code = pyotp.TOTP(otp_hash).now()
 
-            if self.__engine.login(
+            if self.__currentWalletEngine.login(
                 password=self.get_password_text(),
                 otp_code=otp_code
             ):
-                self.__engine.logout()
+                self.__currentWalletEngine.logout()
                 result.isValid = True
 
             if result.isValid:
                 result.message = translator("Let's scan and confirm your OTP code")
-                result.params['username'] = self.__engine.username()
+                result.params['username'] = self.__currentWalletEngine.username()
                 result.params['OTPHash'] = otp_hash
 
         except Exception as err:

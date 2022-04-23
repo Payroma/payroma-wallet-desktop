@@ -12,19 +12,19 @@ class DepositModel(deposit.UiForm, event.EventForm):
         self.events_listening()
 
         # Variables
-        self.__engine = None
+        self.__currentWalletEngine = None
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
         self.set_data(engine.address().value(), payromasdk.MainProvider.interface.name)
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     def network_changed_event(self, name: str, status: bool):
         self.reset()
 
         address = ''
-        if self.__engine:
-            address = self.__engine.address().value()
+        if self.__currentWalletEngine:
+            address = self.__currentWalletEngine.address().value()
 
         self.set_data(address, name)
 

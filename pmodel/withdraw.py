@@ -21,11 +21,15 @@ class WithdrawModel(withdraw.UiForm, event.EventForm):
         self.__addAddressBookThread.signal.resultSignal.connect(self.__add_new_clicked_ui)
 
         # Variables
+        self.__currentWalletEngine = None
         self.__nickname = None
 
     def hideEvent(self, a0: QHideEvent):
         super(WithdrawModel, self).hideEvent(a0)
         self.reset()
+
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
+        self.__currentWalletEngine = engine
 
     def withdraw_address_changed_event(self, address: str):
         self.set_address(address)
@@ -40,11 +44,17 @@ class WithdrawModel(withdraw.UiForm, event.EventForm):
             return
 
         addable = False
-        if len(text) == 42:
+        if len(text) == 42 and web3.Web3.isAddress(text):
             valid = True
             is_exists = any(text == i.address.value() for i in payromasdk.engine.addressbook.get_all())
             if not is_exists:
                 addable = True
+
+            if text == self.__currentWalletEngine.address().value():
+                QApplication.quickNotification.warning(
+                    translator("Be Careful: This address is the same as the current wallet address."),
+                    timeout=4000
+                )
 
         event.withdrawAddressChanged.notify(address=text)
         super(WithdrawModel, self).address_changed(text, valid, addable)

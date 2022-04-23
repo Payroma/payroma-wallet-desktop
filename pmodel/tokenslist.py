@@ -16,7 +16,7 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         self.__balanceUpdateThread.signal.resultSignal.connect(self.__balance_update_ui)
 
         # Variables
-        self.__engine = None
+        self.__currentWalletEngine = None
         self.__tokenItems = []
 
     def showEvent(self, a0: QShowEvent):
@@ -32,7 +32,7 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         self.refresh()
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
-        self.__engine = engine
+        self.__currentWalletEngine = engine
         self.refresh()
 
     def network_changed_event(self, name: str, status: bool):
@@ -43,7 +43,7 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         self.__tokenItems.clear()
 
     def refresh(self):
-        if not self.__engine:
+        if not self.__currentWalletEngine:
             return
 
         self.reset()
@@ -55,13 +55,13 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         self.__tokenItems.append(item)
 
         # Wallet tokens
-        for token in self.__engine.tokens():
+        for token in self.__currentWalletEngine.tokens():
             item = tokenitem.TokenItem(self)
             item.set_engine(
                 token_engine=payromasdk.engine.token.TokenEngine(
-                    token_interface=token, sender=self.__engine.address()
+                    token_interface=token, sender=self.__currentWalletEngine.address()
                 ),
-                wallet_engine=self.__engine
+                wallet_engine=self.__currentWalletEngine
             )
 
             self.add_item(item)
@@ -81,7 +81,7 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
                         is_valid=True,
                         params={
                             'token': token,
-                            'balance': token.engine().balance_of(self.__engine.address())
+                            'balance': token.engine().balance_of(self.__currentWalletEngine.address())
                         }
                     ))
 

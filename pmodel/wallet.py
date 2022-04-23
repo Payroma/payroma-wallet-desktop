@@ -24,12 +24,12 @@ class WalletModel(wallet.UiForm, event.EventForm):
         self.__removeThread.signal.resultSignal.connect(self.__remove_clicked_ui)
 
         # Variables
-        self.__engine = None
+        self.__currentWalletEngine = None
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
         self.set_data(engine.username(), engine.address().value())
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     def wallet_tab_changed_event(self, tab: str):
         self.set_current_tab(tab)
@@ -66,7 +66,7 @@ class WalletModel(wallet.UiForm, event.EventForm):
 
     def explorer_clicked(self):
         super(WalletModel, self).explorer_clicked()
-        self.__engine.address().explorer_view()
+        self.__currentWalletEngine.address().explorer_view()
 
     def remove_clicked(self):
         super(WalletModel, self).remove_clicked()
@@ -98,7 +98,9 @@ class WalletModel(wallet.UiForm, event.EventForm):
         )
 
         try:
-            result.isValid = payromasdk.engine.wallet.remove(wallet_interface=self.__engine.interface)
+            result.isValid = payromasdk.engine.wallet.remove(
+                wallet_interface=self.__currentWalletEngine.interface
+            )
             if result.isValid:
                 result.message = translator("Wallet removed successfully")
 
@@ -117,6 +119,6 @@ class WalletModel(wallet.UiForm, event.EventForm):
 
     def logout_clicked(self):
         super(WalletModel, self).logout_clicked()
-        self.__engine.logout()
+        self.__currentWalletEngine.logout()
         event.walletEdited.notify()
         event.mainTabChanged.notify(tab=Tab.WALLETS_LIST)

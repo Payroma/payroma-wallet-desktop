@@ -17,17 +17,17 @@ class LoginModel(login.UiForm, event.EventForm):
 
         # Variables
         self.__isTyping = False
-        self.__engine = None
+        self.__currentWalletEngine = None
         self.__forward = None
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
         self.set_data(engine.username(), engine.address().value())
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     def login_forward_event(self, method):
         self.__forward = method
-        if self.__engine.is_logged():
+        if self.__currentWalletEngine.is_logged():
             self.__forward('')
         else:
             event.mainTabChanged.notify(tab=Tab.LOGIN, recordable=False)
@@ -69,9 +69,9 @@ class LoginModel(login.UiForm, event.EventForm):
         )
 
         try:
-            username = self.__engine.username()
+            username = self.__currentWalletEngine.username()
             password = self.get_password_text()
-            pin_code = self.__engine.pin_code()
+            pin_code = self.__currentWalletEngine.pin_code()
             otp_code = pyotp.TOTP(payromasdk.tools.walletcreator.otp_hash(username, password, '')).now()
 
             if not payromasdk.tools.walletcreator.access(username, password, pin_code, otp_code):

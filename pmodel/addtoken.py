@@ -20,7 +20,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
 
         # Variables
         self.__isTyping = False
-        self.__engine = None
+        self.__currentWalletEngine = None
 
     def showEvent(self, a0: QShowEvent):
         super(AddTokenModel, self).showEvent(a0)
@@ -30,7 +30,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
         self.reset()
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     @pyqtSlot()
     def back_clicked(self):
@@ -135,11 +135,13 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
 
         try:
             contract = payromasdk.tools.interface.Address(self.get_address_text())
-            is_exists = any(contract.value() == i.contract.value() for i in self.__engine.tokens())
+            is_exists = any(
+                contract.value() == i.contract.value() for i in self.__currentWalletEngine.tokens()
+            )
             if is_exists:
                 result.message = translator("Token already exists")
             else:
-                result.isValid = self.__engine.add_token(
+                result.isValid = self.__currentWalletEngine.add_token(
                     payromasdk.tools.interface.Token(
                         contract=contract,
                         symbol=self.get_symbol_text(),

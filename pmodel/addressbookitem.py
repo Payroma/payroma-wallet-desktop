@@ -52,10 +52,12 @@ class AddressBookItem(addressbookitem.UiForm):
 
     @staticmethod
     def __remove_clicked_ui(result: ThreadingResult):
-        event.addressBookEdited.notify()
+        if result.isValid:
+            event.addressBookEdited.notify()
+
         result.show_message()
 
-    def interface(self) -> payromasdk.tools.interface.Network:
+    def interface(self) -> payromasdk.tools.interface.AddressBook:
         return self.__interface
 
     def set_interface(self, interface: payromasdk.tools.interface.AddressBook):

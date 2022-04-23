@@ -11,7 +11,11 @@ class AddressesBookListModel(addressesbooklist.UiForm, event.EventForm):
         self.setup()
         self.events_listening()
 
-    def app_started_event(self):
+        # Variables
+        self.__currentWalletEngine = None
+
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
+        self.__currentWalletEngine = engine
         self.refresh()
 
     def address_book_edited_event(self):
@@ -29,6 +33,10 @@ class AddressesBookListModel(addressesbooklist.UiForm, event.EventForm):
         self.reset()
 
         for wallet in payromasdk.engine.addressbook.get_all():
+            if wallet.address.value() == self.__currentWalletEngine.address().value():
+                # Skip current wallet if recorded
+                continue
+
             item = addressbookitem.AddressBookItem(self)
             item.set_interface(wallet)
 

@@ -17,13 +17,13 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
 
         # Variables
         self.__isTyping = False
-        self.__engine = None
+        self.__currentWalletEngine = None
         self.__forward = None
         self.__passwordValue = None
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.reset()
-        self.__engine = engine
+        self.__currentWalletEngine = engine
 
     def authenticator_forward_event(self, method, password: str = ''):
         self.__forward = method
@@ -67,10 +67,10 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
         )
 
         try:
-            if not self.__engine.is_logged():
-                self.__engine.login(self.__passwordValue, self.get_otp_code_text())
+            if not self.__currentWalletEngine.is_logged():
+                self.__currentWalletEngine.login(self.__passwordValue, self.get_otp_code_text())
 
-            private_key = self.__engine.private_key(self.get_otp_code_text())
+            private_key = self.__currentWalletEngine.private_key(self.get_otp_code_text())
             if private_key and len(private_key) == 66:
                 result.isValid = True
 

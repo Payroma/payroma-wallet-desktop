@@ -54,7 +54,9 @@ class TokenItem(tokenitem.UiForm):
 
     @staticmethod
     def __remove_clicked_ui(result: ThreadingResult):
-        event.tokenEdited.notify()
+        if result.isValid:
+            event.tokenEdited.notify()
+
         result.show_message()
 
     def explorer_clicked(self):
