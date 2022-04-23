@@ -74,7 +74,7 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
             message=translator("Unable to connect, make sure you are connected to the internet")
         )
 
-        while True:
+        while self.__balanceUpdateThread.isRunning():
             try:
                 for token in self.__tokenItems:
                     self.__balanceUpdateThread.signal.resultSignal.emit(ThreadingResult(
