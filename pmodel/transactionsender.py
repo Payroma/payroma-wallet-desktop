@@ -25,6 +25,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
         self.__abi = None
         self.__args = None
         self.__data = None
+        self.__symbol = None
         self.__privateKey = None
 
     def showEvent(self, a0: QShowEvent):
@@ -44,6 +45,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
         self.__abi = details.get('abi', {})
         self.__args = details.get('args', {})
         self.__data = details.get('data', '')
+        self.__symbol = symbol
 
         fn_name = self.__abi.get('name', "transfer").title()
 
@@ -94,7 +96,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
         details_widget = transactiondetails.TransactionDetailsModel(self)
         details_widget.set_data(
-            function_type=self.__abi.get('name', 'transfer'),
+            function_type=self.__abi.get('name', "transfer"),
             from_address=tx[payromasdk.engine.token.Metadata.FROM],
             to_address=tx[payromasdk.engine.token.Metadata.TO],
             tx=json.dumps(tx, sort_keys=False, indent=4),
@@ -125,21 +127,47 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
     def __confirm_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Transaction confirmation failed, Please try again"),
-            params={
-                'txHash': None
-            }
+            message=translator("Transaction failed, Please try again")
         )
 
         try:
             tx_hash = payromasdk.MainProvider.send_transaction(
                 tx_data=self.__tx, private_key=self.__privateKey
             )
-            result.isValid = True
+
+            fn_name = self.__abi.get('name', "transfer").title()
+            from_address = payromasdk.tools.interface.Address(
+                self.__tx[payromasdk.engine.provider.Metadata.FROM]
+            )
+
+            to_address = self.__args.get('recipient', self.__args.get('spender'))
+            if not to_address:
+                to_address = payromasdk.tools.interface.Address(
+                    self.__tx[payromasdk.engine.provider.Metadata.TO]
+                )
+
+            amount = self.__args.get('amount', self.__args.get('_amount'))
+            if not amount:
+                amount = payromasdk.tools.interface.WeiAmount(
+                    value=self.__tx[payromasdk.engine.provider.Metadata.VALUE], decimals=18
+                )
+
+            transaction = payromasdk.tools.interface.Transaction(
+                tx_hash=tx_hash,
+                function=fn_name,
+                from_address=from_address,
+                to_address=to_address,
+                amount=amount,
+                symbol=self.__symbol,
+                date_created=time.ctime(),
+                status=payromasdk.tools.interface.Transaction.Status.PENDING
+            )
+
+            if self.__currentWalletEngine.add_transaction(transaction_interface=transaction):
+                result.isValid = True
 
             if result.isValid:
-                result.message = translator("Transaction confirmed successfully")
-                result.params['txHash'] = tx_hash
+                result.message = translator("Please wait, Transaction in processing")
 
         except Exception as err:
             result.error(str(err))
@@ -149,6 +177,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
     def __confirm_clicked_ui(self, result: ThreadingResult):
         if result.isValid:
+            event.transactionHistoryEdited.notify()
             event.mainTabChanged.notify(tab=Tab.HISTORY_LIST)
 
         result.show_message()

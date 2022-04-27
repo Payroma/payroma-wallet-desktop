@@ -10,48 +10,27 @@ class HistoryListModel(historylist.UiForm, event.EventForm):
         self.setup()
         self.events_listening()
 
-    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
-        self.refresh()
+        # Variables
+        self.__currentWalletEngine = None
 
     def transaction_history_edited_event(self):
         self.refresh()
 
+    def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
+        self.__currentWalletEngine = engine
+        self.refresh()
+
+    def network_changed_event(self, name: str, status: bool):
+        self.refresh()
+
     def refresh(self):
+        if not self.__currentWalletEngine:
+            return
+
         self.reset()
 
-        # Test
-        transactions = [
-            {
-                'function': 'Transfer',
-                'status': historyitem.HistoryItem.PENDING,
-                'amount': '100,000',
-                'symbol': 'BUSD',
-                'address': '0x0000000000000000000000000000000000000001',
-                'date': 'Tue Mar  1 14:31:33 2022'
-            },
-            {
-                'function': 'Approval',
-                'status': historyitem.HistoryItem.SUCCESS,
-                'amount': 'Unlimited',
-                'symbol': 'USDT',
-                'address': '0x0000000000000000000000000000000000000001',
-                'date': 'Tue Mar  1 14:31:33 2022'
-            },
-            {
-                'function': 'Deposit',
-                'status': historyitem.HistoryItem.FAILED,
-                'amount': '1,000',
-                'symbol': 'PYA',
-                'address': '0x0000000000000000000000000000000000000001',
-                'date': 'Tue Mar  1 14:31:33 2022'
-            }
-        ]
-        for transaction in transactions:
+        for transaction in self.__currentWalletEngine.transactions(latest=20):
             item = historyitem.HistoryItem(self)
-            item.set_icon(transaction['symbol'])
-            item.set_function_name(transaction['function'])
-            item.set_status(transaction['status'])
-            item.set_balance(transaction['amount'], transaction['symbol'])
-            item.set_address(transaction['address'])
-            item.set_date(transaction['date'])
+            item.set_interface(transaction)
+
             self.add_item(item)
