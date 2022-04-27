@@ -145,7 +145,7 @@ class AddAmountModel(addamount.UiForm, event.EventForm):
 
             # Add gas fee and estimated amount
             gas = payromasdk.MainProvider.add_gas(
-                tx_data=tx, eip1559_enabled=payromasdk.MainProvider.is_ethereum()
+                tx_data=tx, eip1559_enabled=payromasdk.MainProvider.eip1559_supported()
             )
             max_fee = gas[payromasdk.engine.provider.Metadata.MAX_FEE].value()
             max_amount = gas[payromasdk.engine.provider.Metadata.MAX_AMOUNT].value()

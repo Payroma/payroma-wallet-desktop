@@ -168,7 +168,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
             try:
                 gas = payromasdk.MainProvider.add_gas(
-                    tx_data=self.__tx, eip1559_enabled=payromasdk.MainProvider.is_ethereum()
+                    tx_data=self.__tx, eip1559_enabled=payromasdk.MainProvider.eip1559_supported()
                 )
                 result.params.update(gas)
 
