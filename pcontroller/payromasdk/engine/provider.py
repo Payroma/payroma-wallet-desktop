@@ -175,12 +175,14 @@ class _MainProvider(__Provider):
     def block_number(self) -> int:
         return self.web3.eth.block_number
 
-    def is_ethereum(self) -> bool:
+    def eip1559_supported(self) -> bool:
+        valid = False
+
         if self.interface:
             if '.infura.io/v3' in self.interface.rpc and self.interface.symbol == 'ETH':
-                return True
+                valid = True
 
-        return False
+        return valid
 
 
 class _PNSProvider(__Provider):

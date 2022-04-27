@@ -203,10 +203,10 @@ class WalletEngine(object):
 
         return valid
 
-    def transactions(self) -> list:
+    def transactions(self, latest: int = None) -> list:
         current_network = MainProvider.interface.networkID
         try:
-            return transactions.db.get_item(self.interface.addressID)[current_network]
+            return transactions.db.get_item(self.interface.addressID)[current_network][:latest]
         except KeyError:
             return []
 
@@ -215,7 +215,7 @@ class WalletEngine(object):
         if isinstance(transaction_interface, interface.Transaction):
             current_network = MainProvider.interface.networkID
             _transactions = {current_network: self.transactions()}
-            _transactions[current_network].append(transaction_interface)
+            _transactions[current_network].insert(0, transaction_interface)
 
             try:
                 transactions.db.get_item(self.interface.addressID).update(_transactions)
