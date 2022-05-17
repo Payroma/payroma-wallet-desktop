@@ -17,7 +17,7 @@ def add_new(rpc: str, name: str, chain_id: int, symbol: str, explorer: str) -> b
     network_interface = interface.Network(
         rpc=rpc, name=name, chain_id=chain_id, symbol=symbol, explorer=explorer
     )
-    networks.db.update_item(value=network_interface, item_id=network_interface.networkID)
+    networks.db.update_item(value=network_interface, item_id=network_interface.id)
 
     return True
 
@@ -31,7 +31,7 @@ def remove(network_interface: interface.Network) -> bool:
     valid = False
     if isinstance(network_interface, interface.Network):
         try:
-            networks.db.remove_item(item_id=network_interface.networkID)
+            networks.db.remove_item(item_id=network_interface.id)
         except KeyError:
             pass
         else:

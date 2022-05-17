@@ -17,7 +17,7 @@ def add_new(username: str, address: interface.Address) -> bool:
     address_book_interface = interface.AddressBook(
         username=username, address=address
     )
-    addressesbook.db.update_item(value=address_book_interface, item_id=address_book_interface.addressID)
+    addressesbook.db.update_item(value=address_book_interface, item_id=address_book_interface.id)
 
     return True
 
@@ -31,7 +31,7 @@ def remove(address_book_interface: interface.AddressBook) -> bool:
     valid = False
     if isinstance(address_book_interface, interface.AddressBook):
         try:
-            addressesbook.db.remove_item(item_id=address_book_interface.addressID)
+            addressesbook.db.remove_item(item_id=address_book_interface.id)
         except KeyError:
             pass
         else:

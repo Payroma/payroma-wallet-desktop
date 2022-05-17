@@ -11,16 +11,10 @@ def _convert_to_id(value: str) -> int:
 
 
 class Network(object):
-    RPC = 1
-    NAME = 2
-    CHAIN_ID = 3
-    SYMBOL = 4
-    EXPLORER = 5
-
     def __init__(
             self, rpc: str, name: str, chain_id: int, symbol: str, explorer: str
     ):
-        self.networkID = _convert_to_id(rpc)
+        self.id = _convert_to_id(rpc)
         self.rpc = rpc
         self.name = name
         self.chainID = chain_id
@@ -147,16 +141,10 @@ class EtherAmount(object):
 
 
 class Wallet(object):
-    USERNAME = 1
-    ADDRESS = 2
-    PIN_CODE = 3
-    DATE_CREATED = 4
-    IS_FAVORITE = 5
-
     def __init__(
             self, username: str, address: Address, pin_code: bytes, date_created: str, is_favorite: bool
     ):
-        self.addressID = address.to_integer()
+        self.id = address.to_integer()
         self.username = username
         self.address = address
         self.pinCode = pin_code
@@ -165,27 +153,16 @@ class Wallet(object):
 
 
 class Token(object):
-    SYMBOL = 1
-    DECIMALS = 2
-
     def __init__(
             self, contract: Address, symbol: str, decimals: int
     ):
+        self.id = contract.to_integer()
         self.contract = contract
         self.symbol = symbol
         self.decimals = decimals
 
 
 class Transaction(object):
-    TX_HASH = 1
-    FUNCTION = 2
-    FROM = 3
-    TO = 4
-    AMOUNT = 5
-    SYMBOL = 6
-    DATE = 7
-    STATUS = 8
-
     class Status:
         FAILED = 0
         SUCCESS = 1
@@ -196,6 +173,7 @@ class Transaction(object):
             from_address: Address, to_address: Address, amount: WeiAmount,
             symbol: str, date_created: str, status: int
     ):
+        self.id = tx_hash.to_integer()
         self.txHash = tx_hash
         self.function = function
         self.fromAddress = from_address
@@ -205,38 +183,36 @@ class Transaction(object):
         self.dateCreated = date_created
         self.status = status
 
+    def status_text(self) -> str:
+        values = {
+            Transaction.Status.FAILED: 'failed',
+            Transaction.Status.SUCCESS: 'success',
+            Transaction.Status.PENDING: 'pending'
+        }
+
+        return values[self.status]
+
 
 class AddressBook(object):
-    USERNAME = 1
-    ADDRESS = 2
-
     def __init__(
             self, username: str, address: Address
     ):
-        self.addressID = address.to_integer()
+        self.id = address.to_integer()
         self.username = username
         self.address = address
 
 
 class Stake(object):
-    END_BLOCK = 1
-    DURATION = 2
-    STAKE_TOKEN_CONTRACT = 3
-    REWARD_TOKEN_CONTRACT = 4
-    STAKE_TOKEN_SYMBOL = 5
-    REWARD_TOKEN_SYMBOL = 6
-    STAKE_TOKEN_DECIMALS = 7
-    REWARD_TOKEN_DECIMALS = 8
-
     def __init__(
-            self, contract: Address, end_block: int, duration: str,
-            stake_token: Token, reward_token: Token
+            self, contract: Address, stake_token: Token, reward_token: Token,
+            expiry_date: int, is_favorite: bool
     ):
+        self.id = contract.to_integer()
         self.contract = contract
-        self.endBlock = end_block
-        self.duration = duration
         self.stakeToken = stake_token
         self.rewardToken = reward_token
+        self.expiryDate = expiry_date
+        self.isFavorite = is_favorite
 
 
 __all__ = [

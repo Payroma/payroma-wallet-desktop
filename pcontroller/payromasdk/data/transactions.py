@@ -1,33 +1,5 @@
-import SPDatabase
-import SPSecurity
+from . import loader
 
 
-def __loader() -> SPDatabase.DataManager:
-    """
-    :exception FILE_SUPPORT_ERROR
-    :exception SPCrypto.FILE_SUPPORT_ERROR
-    :exception SPCrypto.PERMISSION_ERROR
-    :exception pickle.UnpicklingError
-    :exception MemoryError, PermissionError
-    :return: SPDatabase.DataManager
-    """
-
-    # Memory setup
-    config = SPDatabase.FileConfig()
-    config.database_update(file='transactions', extension='db')
-    config.setup()
-
-    # Default configuration and load
-    database = SPDatabase.DataManager(
-        config, SPSecurity.secure_string(
-            # Set the application password here
-            (116, 101, 115, 116)
-        ).decode()
-    )
-    database.load()
-
-    return database
-
-
-db = __loader()
+db = loader.loader(file_name='transactions')
 __all__ = ['db']

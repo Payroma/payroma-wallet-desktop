@@ -3,10 +3,11 @@ from ..data import wallets, tokens, transactions
 from .provider import MainProvider
 from typing import Union
 import time
+import SPDatabase
 
 
 recentWalletsEngine = {
-    # addressID: walletEngine
+    # id: walletEngine
 }
 
 
@@ -38,7 +39,7 @@ def add_new(username: str, password: str, pin_code: str, otp_code: str) -> bool:
             date_created=time.ctime(),
             is_favorite=False
         )
-        wallets.db.update_item(value=wallet_interface, item_id=wallet_interface.addressID)
+        wallets.db.update_item(value=wallet_interface, item_id=wallet_interface.id)
         valid = True
 
     return valid
@@ -53,9 +54,9 @@ def remove(wallet_interface: interface.Wallet) -> bool:
     valid = False
     if isinstance(wallet_interface, interface.Wallet):
         try:
-            wallets.db.remove_item(item_id=wallet_interface.addressID)
-            if wallet_interface.addressID in recentWalletsEngine:
-                del recentWalletsEngine[wallet_interface.addressID]
+            wallets.db.remove_item(item_id=wallet_interface.id)
+            if wallet_interface.id in recentWalletsEngine:
+                del recentWalletsEngine[wallet_interface.id]
 
         except KeyError:
             pass
@@ -67,7 +68,7 @@ def remove(wallet_interface: interface.Wallet) -> bool:
 
 def backup_wallets(
         path: str, wallets_id: list = None, progress_event: callable = None,
-        password: Union[str, wallets.SPDatabase.ControlObject] = wallets.SPDatabase.Control.AUTO
+        password: Union[str, SPDatabase.ControlObject] = SPDatabase.Control.AUTO
 ) -> bool:
     """
     Backup all wallets are selected
@@ -84,8 +85,8 @@ def backup_wallets(
 
 def import_wallets(
         path: str, wallets_id: list = None, progress_event: callable = None,
-        password: Union[str, wallets.SPDatabase.ControlObject] = wallets.SPDatabase.Control.AUTO,
-        mode: wallets.SPDatabase.ControlObject = wallets.SPDatabase.Control.UPDATE
+        password: Union[str, SPDatabase.ControlObject] = SPDatabase.Control.AUTO,
+        mode: SPDatabase.ControlObject = SPDatabase.Control.UPDATE
 ) -> bool:
     """
     Import all wallets are selected
@@ -105,7 +106,7 @@ def import_wallets(
 
 class WalletEngine(object):
     def __init__(self, wallet_interface: interface.Wallet):
-        recentWalletsEngine[wallet_interface.addressID] = self
+        recentWalletsEngine[wallet_interface.id] = self
 
         self.__password = None
         self.__isLogged = False
@@ -163,24 +164,24 @@ class WalletEngine(object):
         self.__isLogged = False
 
     def tokens(self) -> list:
-        current_network = MainProvider.interface.networkID
+        current_network = MainProvider.interface.id
         try:
-            return tokens.db.get_item(self.interface.addressID)[current_network]
+            return tokens.db.get_item(self.interface.id)[current_network]
         except KeyError:
             return []
 
     def add_token(self, token_interface: interface.Token) -> bool:
         valid = False
         if isinstance(token_interface, interface.Token):
-            current_network = MainProvider.interface.networkID
+            current_network = MainProvider.interface.id
             _tokens = {current_network: self.tokens()}
             _tokens[current_network].append(token_interface)
 
             try:
-                tokens.db.get_item(self.interface.addressID).update(_tokens)
+                tokens.db.get_item(self.interface.id).update(_tokens)
             except KeyError:
                 tokens.db.update_item(
-                    value=_tokens, item_id=self.interface.addressID, ignore_item_exists=True
+                    value=_tokens, item_id=self.interface.id, ignore_item_exists=True
                 )
             else:
                 tokens.db.dump()
@@ -204,24 +205,24 @@ class WalletEngine(object):
         return valid
 
     def transactions(self, latest: int = None) -> list:
-        current_network = MainProvider.interface.networkID
+        current_network = MainProvider.interface.id
         try:
-            return transactions.db.get_item(self.interface.addressID)[current_network][:latest]
+            return transactions.db.get_item(self.interface.id)[current_network][:latest]
         except KeyError:
             return []
 
     def add_transaction(self, transaction_interface: interface.Transaction) -> bool:
         valid = False
         if isinstance(transaction_interface, interface.Transaction):
-            current_network = MainProvider.interface.networkID
+            current_network = MainProvider.interface.id
             _transactions = {current_network: self.transactions()}
             _transactions[current_network].insert(0, transaction_interface)
 
             try:
-                transactions.db.get_item(self.interface.addressID).update(_transactions)
+                transactions.db.get_item(self.interface.id).update(_transactions)
             except KeyError:
                 transactions.db.update_item(
-                    value=_transactions, item_id=self.interface.addressID, ignore_item_exists=True
+                    value=_transactions, item_id=self.interface.id, ignore_item_exists=True
                 )
             else:
                 transactions.db.dump()

@@ -1,6 +1,154 @@
 from .provider import MainProvider, Metadata
 from ..abis import tokenABI, stakeABI
 from ..tools import interface
+from ..data import stakecontracts
+import time
+import pickle
+import requests
+
+
+def __fetching(url: str) -> dict:
+    try:
+        return pickle.loads(
+            eval(requests.get(url).text)
+        )
+    except requests.exceptions.ConnectionError:
+        return {}
+
+
+def __favorite_sort(contracts: list) -> list:
+    items = contracts.copy()
+    favorites = [i for i in items if i.isFavorite]
+    for i in favorites:
+        items.remove(i)
+
+    return favorites + items
+
+
+def get_all(filter_by_network: bool = False) -> list:
+    result = []
+
+    if filter_by_network:
+        try:
+            current_network = MainProvider.interface.id
+            contracts = stakecontracts.db.get_item(current_network)
+            result = __favorite_sort(contracts)
+        except KeyError:
+            pass
+
+    else:
+        result = list(stakecontracts.db.get_data().values())
+        for index, contracts in enumerate(result):
+            result[index] = __favorite_sort(contracts)
+
+    return result
+
+
+def add_new(
+        contract: interface.Address, expiry_date: int,
+        stake_token_contract: interface.Address, stake_token_symbol: str, stake_token_decimals: int,
+        reward_token_contract: interface.Address, reward_token_symbol: str, reward_token_decimals: int
+) -> bool:
+    """
+    Add a new stake contract
+    :exception SPDatabase.ITEM_EXISTS_ERROR
+    :exception OSError, FileNotFoundError, PermissionError
+    :return: bool
+    """
+
+    stake_token_interface = interface.Token(
+        contract=stake_token_contract,
+        symbol=stake_token_symbol,
+        decimals=stake_token_decimals
+    )
+
+    reward_token_interface = interface.Token(
+        contract=reward_token_contract,
+        symbol=reward_token_symbol,
+        decimals=reward_token_decimals
+    )
+
+    stake_interface = interface.Stake(
+        contract=contract,
+        stake_token=stake_token_interface,
+        reward_token=reward_token_interface,
+        expiry_date=expiry_date,
+        is_favorite=False
+    )
+
+    valid = False
+    current_network = MainProvider.interface.id
+    contracts = get_all(filter_by_network=True)
+
+    is_exists = any(contract.id == stake_interface.id for contract in contracts)
+    if not is_exists:
+        contracts.append(stake_interface)
+        stakecontracts.db.update_item(
+            value=contracts, item_id=current_network, ignore_item_exists=True
+        )
+        valid = True
+
+    return valid
+
+
+def remove(stake_interface: interface.Stake) -> bool:
+    """
+    Remove specific stake interface
+    :return: bool
+    """
+
+    valid = False
+    if isinstance(stake_interface, interface.Stake):
+        data_stored = get_all()
+
+        for contracts in data_stored:
+            for contract in contracts.copy():
+                if stake_interface.id == contract.id:
+                    contracts.remove(contract)
+                    valid = True
+
+        if valid:
+            stakecontracts.db.dump()
+
+    return valid
+
+
+def data_export() -> bytes:
+    data_stored = stakecontracts.db.get_data()
+    return pickle.dumps(data_stored)
+
+
+def data_import(api_url: str) -> bool:
+    valid = False
+    current_time = time.time()
+    data_fetched = __fetching(api_url)
+    data_stored = stakecontracts.db.get_data()
+
+    # Remove expiration date contracts
+    for contracts in data_stored.values():
+        for contract in contracts.copy():
+            if current_time > contract.expiryDate:
+                contracts.remove(contract)
+                valid = True
+
+    # Merge latest contracts
+    for network_id, contracts in data_fetched.items():
+        data = data_stored.get(network_id, []).copy()
+        for contract in contracts:
+            is_exists = any(c.id == contract.id for c in data)
+            if not is_exists and current_time < contract.expiryDate:
+                data.append(contract)
+
+        if data != data_stored.get(network_id):
+            stakecontracts.db.update_item(
+                value=data, item_id=network_id, ignore_item_exists=True, dump=False
+            )
+            valid = True
+
+    if valid:
+        stakecontracts.db.dump()
+
+    return valid
 
 
 class StakeEngine(object):
@@ -173,6 +321,10 @@ class StakeEngine(object):
             self.contract.functions.transferOwnership(new_owner.value())
         )
 
+    def set_favorite(self, status: bool):
+        self.interface.isFavorite = status
+        stakecontracts.db.dump()
+
     def _build_transaction(self, method) -> dict:
         if not isinstance(self.sender, interface.Address):
             raise ValueError("The sender must not be a zero address")
@@ -221,4 +373,4 @@ class StakeEngine(object):
         return tx
 
 
-__all__ = ['StakeEngine']
+__all__ = ['get_all', 'add_new', 'remove', 'data_export', 'data_import', 'StakeEngine']
