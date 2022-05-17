@@ -34,7 +34,7 @@ class WalletsListModel(walletslist.UiForm, event.EventForm):
         for wallet in payromasdk.engine.wallet.get_all():
             # Use wallet engine that created before or create a new one
             try:
-                wallet = payromasdk.engine.wallet.recentWalletsEngine[wallet.addressID]
+                wallet = payromasdk.engine.wallet.recentWalletsEngine[wallet.id]
             except KeyError:
                 wallet = payromasdk.engine.wallet.WalletEngine(wallet_interface=wallet)
 

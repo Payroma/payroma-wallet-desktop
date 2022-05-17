@@ -3,13 +3,6 @@ from pcontroller import payromasdk, translator, ThreadingResult, ThreadingArea
 from pui import historyitem
 
 
-transactionStatus = {
-    payromasdk.tools.interface.Transaction.Status.PENDING: historyitem.UiForm.PENDING,
-    payromasdk.tools.interface.Transaction.Status.SUCCESS: historyitem.UiForm.SUCCESS,
-    payromasdk.tools.interface.Transaction.Status.FAILED: historyitem.UiForm.FAILED
-}
-
-
 class HistoryItem(historyitem.UiForm):
     def __init__(self, parent):
         super(HistoryItem, self).__init__(parent)
@@ -33,7 +26,7 @@ class HistoryItem(historyitem.UiForm):
         self.__interface = interface
         self.set_icon(interface.symbol)
         self.set_function_name(interface.function)
-        self.set_status(transactionStatus[interface.status])
+        self.set_status(interface.status_text())
         self.set_balance(interface.amount.to_ether_string(), interface.symbol)
         self.set_address(interface.toAddress.value())
         self.set_date(interface.dateCreated)
@@ -74,5 +67,5 @@ class HistoryItem(historyitem.UiForm):
         self.__statusUpdateThread.signal.resultSignal.emit(result)
 
     def __status_update_ui(self, result: ThreadingResult):
-        self.set_status(transactionStatus[self.__interface.status])
+        self.set_status(self.__interface.status_text())
         result.show_message()

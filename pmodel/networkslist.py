@@ -54,10 +54,10 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
             item = networkitem.NetworkItem(self)
             item.set_interface(network)
 
-            if default_network == network.networkID:
+            if default_network == network.id:
                 item.set_master()
 
-            if not interface or current_network == network.networkID:
+            if not interface or current_network == network.id:
                 interface = network
 
             self.add_item(item)
@@ -81,7 +81,7 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
         )
 
         try:
-            Global.settings.update_option(SettingsOption.networkID, self.__currentNetwork.networkID)
+            Global.settings.update_option(SettingsOption.networkID, self.__currentNetwork.id)
             result.isValid = payromasdk.MainProvider.connect(network_interface=self.__currentNetwork)
             if result.isValid:
                 result.params['isConnected'] = payromasdk.MainProvider.is_connected()
