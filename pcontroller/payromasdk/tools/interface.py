@@ -93,10 +93,11 @@ class WeiAmount(object):
         return self.__ether
 
     def to_ether_string(self, currency_format: bool = True, length: int = 8) -> str:
-        if self.__ether > 999 and currency_format:
-            return '{:,}.{}'.format(int(self.__int), self.__decimals[:length])
-        elif self.__ether > 0 or not currency_format:
-            return '{}.{}'.format(self.__int, self.__decimals[:length])
+        if self.__ether > 0:
+            if currency_format:
+                return '{:,}.{}'.format(int(self.__int), self.__decimals[:length])
+            else:
+                return '{}.{}'.format(self.__int, self.__decimals[:length])
 
         # in case integer = 0
         return self.__int
@@ -203,16 +204,47 @@ class AddressBook(object):
 
 
 class Stake(object):
+    networkInterface: Network = None
+    UPCOMING = 'upcoming'
+    LIVE = 'live'
+    ENDED = 'ended'
+
     def __init__(
             self, contract: Address, stake_token: Token, reward_token: Token,
-            expiry_date: int, is_favorite: bool
+            stake_website: str, reward_website: str,
+            start_block: int, end_block: int, start_time: int, end_time: int
     ):
         self.id = contract.to_integer()
         self.contract = contract
         self.stakeToken = stake_token
         self.rewardToken = reward_token
-        self.expiryDate = expiry_date
-        self.isFavorite = is_favorite
+        self.stakeWebsite = stake_website
+        self.rewardWebsite = reward_website
+        self.startBlock = start_block
+        self.endBlock = end_block
+        self.startTime = start_time
+        self.endTime = end_time
+
+    def status(self, current_block: int) -> str:
+        result = Stake.LIVE
+
+        if current_block < self.startBlock:
+            result = Stake.UPCOMING
+        elif current_block > self.endBlock:
+            result = Stake.ENDED
+
+        return result
+
+    def explorer_view_countdown(self, current_block: int, browse: bool = True) -> str:
+        block = self.endBlock
+        if self.status(current_block) is Stake.UPCOMING:
+            block = self.startBlock
+
+        url = '{}/block/countdown/{}'.format(Stake.networkInterface.explorer, block)
+        if browse:
+            webbrowser.open_new(url)
+
+        return url
 
 
 __all__ = [

@@ -165,6 +165,7 @@ class _MainProvider(__Provider):
     def connect(self, network_interface: interface.Network) -> bool:
         interface.Address.networkInterface = network_interface
         interface.TXHash.networkInterface = network_interface
+        interface.Stake.networkInterface = network_interface
         return super(_MainProvider, self).connect(network_interface)
 
     def balance_of(self, address: interface.Address) -> interface.WeiAmount:
