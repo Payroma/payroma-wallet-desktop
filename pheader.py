@@ -26,6 +26,7 @@ SECRET_VALUE = (
 # Websites
 class Website:
     PAYROMA = 'www.payroma.com'
+    STAKE_CONTRACTS_API = 'https://raw.githubusercontent.com/Payroma/metadata/main/stake-contracts.json'
 
     class Authenticator:
         GOOGLE_PLAY = 'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=en&gl=US'
@@ -91,3 +92,9 @@ class Tab:
         VERIFICATION = 'authenticatorVerificationModel'
         SCAN = 'authenticatorScanModel'
         FINISHED = 'authenticatorFinishedModel'
+
+
+class PayromaToken:
+    CONTRACT = ''
+    SYMBOL = 'PYA'
+    DECIMALS = 18

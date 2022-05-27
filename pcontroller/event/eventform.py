@@ -70,10 +70,7 @@ class EventForm:
     def token_edited_event(self):
         pass
 
-    def stake_pair_changed_event(
-            self, block_title: str, blocks: int, total_staked: str,
-            balance: str, staked: str, claim: str, stake_symbol: str, earn_symbol: str
-    ):
+    def stake_pair_changed_event(self, engine: payromasdk.engine.stake.StakeEngine):
         pass
 
     def stake_pair_approved_event(self):
