@@ -32,18 +32,20 @@ class NetworkItem(networkitem.UiForm):
         messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
         messagebox.frame.layout().setSpacing(11)
         messagebox.exec_()
+
         if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
             self.__removeThread.start()
 
     def __remove_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to remove network, Please try again")
+            message=translator("Failed to remove network, Please try again.")
         )
 
         try:
             result.isValid = payromasdk.engine.network.remove(self.__interface)
+
             if result.isValid:
-                result.message = translator("Network removed successfully")
+                result.message = translator("Network removed successfully.")
 
         except Exception as err:
             result.error(str(err))
@@ -52,7 +54,9 @@ class NetworkItem(networkitem.UiForm):
 
     @staticmethod
     def __remove_clicked_ui(result: ThreadingResult):
-        event.networkEdited.notify()
+        if result.isValid:
+            event.networkEdited.notify()
+
         result.show_message()
 
     def interface(self) -> payromasdk.tools.interface.Network:

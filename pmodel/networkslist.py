@@ -13,19 +13,17 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
         self.events_listening()
 
         # Threading Methods
-        self.__networkStatusThread = ThreadingArea(self.__network_status_core)
-        self.__networkStatusThread.signal.resultSignal.connect(self.__network_status_ui)
-        self.__networkStatusThread.signal.normalSignal.connect(self.refresh)
+        self.__updateThread = ThreadingArea(self.__update_core)
+        self.__updateThread.signal.resultSignal.connect(self.__update_ui)
 
-        self.__setCurrentNetworkThread = ThreadingArea(self.__set_current_network_core)
-        self.__setCurrentNetworkThread.signal.resultSignal.connect(self.__set_current_network_ui)
+        self.__networkSwitchThread = ThreadingArea(self.__item_clicked_core)
+        self.__networkSwitchThread.signal.resultSignal.connect(self.__item_clicked_ui)
 
         # Variables
-        self.__networkItems = []
-        self.__currentNetwork = None
+        self.__currentNetworkItem = None
 
     def app_started_event(self):
-        self.__networkStatusThread.start()
+        self.refresh()
 
     def network_edited_event(self):
         self.refresh()
@@ -37,101 +35,113 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
     @pyqtSlot(QListWidgetItem)
     def item_clicked(self, item: QListWidgetItem):
         widget = super(NetworksListModel, self).item_clicked(item)
-        self.set_current_network(widget.interface())
+        if widget.is_checked():
+            return
 
-    def reset(self):
-        super(NetworksListModel, self).reset()
-        self.__networkItems.clear()
-        self.__currentNetwork = None
+        self.__current_network(widget)
+        self.__networkSwitchThread.start()
+
+    def __item_clicked_core(self):
+        result = ThreadingResult()
+
+        try:
+            Global.settings.update_option(
+                option=SettingsOption.networkID, value=self.__currentNetworkItem.interface().id
+            )
+            result.isValid = True
+
+        except Exception as err:
+            result.error(str(err))
+
+        self.__networkSwitchThread.signal.resultSignal.emit(result)
+
+    def __item_clicked_ui(self, result: ThreadingResult):
+        if result.isValid:
+            self.__updateThread.start()
+        else:
+            result.show_message()
 
     def refresh(self):
-        interface = None
         default_network = Global.settings.get_option(SettingsOption.networkID, default=True)
         current_network = Global.settings.get_option(SettingsOption.networkID)
+        item_checked = None
+
         self.reset()
 
         for network in payromasdk.engine.network.get_all():
             item = networkitem.NetworkItem(self)
             item.set_interface(network)
 
-            if default_network == network.id:
+            if network.id == default_network:
                 item.set_master()
 
-            if not interface or current_network == network.id:
-                interface = network
+            if network.id == current_network or not item_checked:
+                item_checked = item
 
             self.add_item(item)
-            self.__networkItems.append(item)
 
-        self.set_current_network(interface)
+        self.__current_network(item_checked)
+        self.__updateThread.start()
 
-    def set_current_network(self, interface: payromasdk.tools.interface.Network):
-        if self.__currentNetwork is interface:
-            return
-
-        self.__currentNetwork = interface
-        self.__setCurrentNetworkThread.start()
-
-    def __set_current_network_core(self):
-        result = ThreadingResult(
-            message=translator("Unable to connect, make sure you are connected to the internet"),
-            params={
-                'isConnected': False
-            }
-        )
-
-        try:
-            Global.settings.update_option(SettingsOption.networkID, self.__currentNetwork.id)
-            result.isValid = payromasdk.MainProvider.connect(network_interface=self.__currentNetwork)
-            if result.isValid:
-                result.params['isConnected'] = payromasdk.MainProvider.is_connected()
-                result.message = translator(
-                    "{}: {}".format(translator("Current network"), payromasdk.MainProvider.interface.name)
-                )
-
-        except Exception as err:
-            result.error(str(err))
-
-        self.__setCurrentNetworkThread.signal.resultSignal.emit(result)
-
-    def __set_current_network_ui(self, result: ThreadingResult):
-        for item in self.__networkItems:
-            item.set_status(
-                item.interface() is payromasdk.MainProvider.interface and result.params['isConnected']
-            )
-
-        event.networkChanged.notify(
-            name=payromasdk.MainProvider.interface.name,
-            status=result.params['isConnected']
-        )
-        result.show_message()
         QTimer().singleShot(100, self.repaint)
 
-    def __network_status_core(self):
-        result = ThreadingResult()
+    def __current_network(self, item: QWidget):
+        # Uncheck the previous network
+        if self.__currentNetworkItem:
+            self.__currentNetworkItem.set_checked(False)
 
-        while True:
+        # Check the new network
+        self.__currentNetworkItem = item
+        self.__currentNetworkItem.set_checked(True)
+
+    def __update_core(self):
+        current_network = self.__currentNetworkItem.interface()
+        payromasdk.MainProvider.connect(network_interface=current_network)
+        latest_status = None
+
+        while self.__updateThread.isRunning():
+            result = ThreadingResult(
+                message=translator("Unable to connect, make sure you are connected to the internet."),
+                params={
+                    'statusChanged': False,
+                    'isConnected': False,
+                    'blockNumber': 0
+                }
+            )
+
             try:
-                try:
-                    status = payromasdk.MainProvider.is_connected()
-                except AttributeError:
-                    status = True
+                current_status = payromasdk.MainProvider.is_connected()
+                if current_status != latest_status:
+                    result.params['statusChanged'] = True
+                    latest_status = current_status
 
-                if result.isValid != status:
-                    result.isValid = status
-                    self.__networkStatusThread.signal.normalSignal.emit()
+                block_number = payromasdk.MainProvider.block_number()
+                result.isValid = True
 
-                continue
+                if result.isValid:
+                    result.message = "{}: {}".format(translator("Current Network"), current_network.name)
+                    result.params['isConnected'] = current_status
+                    result.params['blockNumber'] = block_number
+
+            except requests.exceptions.ConnectionError:
+                pass
 
             except Exception as err:
                 result.error(str(err))
 
-            finally:
-                time.sleep(60)
-
-            self.__networkStatusThread.signal.resultSignal.emit(result)
+            self.__updateThread.signal.resultSignal.emit(result)
+            time.sleep(10)
 
     @staticmethod
-    def __network_status_ui(result: ThreadingResult):
-        if not result.isValid:
+    def __update_ui(result: ThreadingResult):
+        if result.params['statusChanged']:
+            event.networkChanged.notify(
+                name=payromasdk.MainProvider.interface.name,
+                status=result.params['isConnected']
+            )
+
+        if result.isValid:
+            event.networkBlockChanged.notify(block_number=result.params['blockNumber'])
+
+        if not result.isValid or result.params['statusChanged']:
             result.show_message()
