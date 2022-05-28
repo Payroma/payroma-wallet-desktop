@@ -44,5 +44,5 @@ class WalletsListModel(walletslist.UiForm, event.EventForm):
             self.add_item(item)
 
     @staticmethod
-    def __authenticator_forward(private_key: str):
+    def __authenticator_forward(*args):
         event.mainTabChanged.notify(tab=Tab.WALLET)

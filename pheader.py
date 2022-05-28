@@ -16,7 +16,7 @@ IS_MAC = (OS_TYPE == 'darwin')
 
 # Application info
 SOFTWARE_NAME = 'Payroma'
-VERSION = 'Decentralized Wallet v2.2022-02'
+VERSION = 'Decentralized Wallet v2.2022-06'
 SECRET_VALUE = (
     # Set the application password here
     (116, 101, 115, 116)

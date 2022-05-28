@@ -13,6 +13,7 @@ class AddWalletModel(addwallet.UiForm):
         # Threading Methods
         self.__addWalletThread = ThreadingArea(self.__add_clicked_core)
         self.__addWalletThread.signal.resultSignal.connect(self.__add_clicked_ui)
+        self.__addWalletThread.finished.connect(self.add_completed)
 
         # Variables
         self.__isTyping = False
@@ -131,7 +132,7 @@ class AddWalletModel(addwallet.UiForm):
 
     def __add_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to add wallet, Please try again"),
+            message=translator("Failed to add wallet, Please try again."),
             params={
                 'engine': None
             }
@@ -139,28 +140,24 @@ class AddWalletModel(addwallet.UiForm):
 
         try:
             address = None
+            username = self.get_username_text()
+            password = self.get_password_text()
+            pin_code = self.get_pin_code_text()
             otp_hash = payromasdk.tools.walletcreator.otp_hash(
-                username=self.get_username_text(),
-                password=self.get_password_text(),
-                pin_code=self.get_pin_code_text()
+                username=username, password=password, pin_code=pin_code
             )
-            otp_code = pyotp.TOTP(otp_hash).now()
+            otp_code = pyotp.TOTP(otp_hash)
 
             if payromasdk.engine.wallet.add_new(
-                    username=self.get_username_text(),
-                    password=self.get_password_text(),
-                    pin_code=self.get_pin_code_text(),
-                    otp_code=otp_code
+                username=username, password=password, pin_code=pin_code, otp_code=otp_code.now()
             ):
                 try:
                     address, _, _ = payromasdk.tools.walletcreator.access(
-                        username=self.get_username_text(),
-                        password=self.get_password_text(),
-                        pin_code=self.get_pin_code_text(),
-                        otp_code=otp_code
+                        username=username, password=password, pin_code=pin_code, otp_code=otp_code.now()
                     )
                     result.isValid = True
                 except TypeError:
+                    # Fails if access method returned False
                     pass
 
             if result.isValid:
@@ -176,11 +173,11 @@ class AddWalletModel(addwallet.UiForm):
         time.sleep(3)
         self.__addWalletThread.signal.resultSignal.emit(result)
 
-    def __add_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __add_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.walletEdited.notify()
             event.walletChanged.notify(engine=result.params['engine'])
             event.mainTabChanged.notify(tab=Tab.AUTHENTICATOR_SETUP, recordable=False)
 
         result.show_message()
-        self.add_completed()
