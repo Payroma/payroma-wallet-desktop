@@ -13,6 +13,7 @@ class AddNetworkModel(addnetwork.UiForm):
         # Threading Methods
         self.__addNetworkThread = ThreadingArea(self.__add_clicked_core)
         self.__addNetworkThread.signal.resultSignal.connect(self.__add_clicked_ui)
+        self.__addNetworkThread.finished.connect(self.add_completed)
 
         # Variables
         self.__isTyping = False
@@ -53,12 +54,7 @@ class AddNetworkModel(addnetwork.UiForm):
             return
 
         if len(text) > 10:
-            if self.get_chain_id_text():
-                self.__chain_id_changed(self.get_chain_id_text())
-
-            provider = web3.Web3(web3.Web3.HTTPProvider(text))
-            if provider.isConnected():
-                valid = True
+            valid = True
 
         self.__isTyping = False
         super(AddNetworkModel, self).rpc_changed(text, valid)
@@ -90,9 +86,7 @@ class AddNetworkModel(addnetwork.UiForm):
             return
 
         if text and self.get_rpc_text():
-            provider = web3.Web3(web3.Web3.HTTPProvider(self.get_rpc_text()))
-            if provider.isConnected() and provider.eth.chain_id == int(self.get_chain_id_text()):
-                valid = True
+            valid = True
 
         self.__isTyping = False
         super(AddNetworkModel, self).chain_id_changed(text, valid)
@@ -123,19 +117,24 @@ class AddNetworkModel(addnetwork.UiForm):
 
     def __add_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to add network, Please try again")
+            message=translator("Failed to add network, maybe the RPC or Chain ID is wrong!")
         )
 
         try:
-            result.isValid = payromasdk.engine.network.add_new(
-                rpc=self.get_rpc_text(),
-                name=self.get_name_text(),
-                chain_id=int(self.get_chain_id_text()),
-                symbol=self.get_symbol_text(),
-                explorer=self.get_explorer_text()
-            )
+            rpc = self.get_rpc_text()
+            name = self.get_name_text()
+            chain_id = int(self.get_chain_id_text())
+            symbol = self.get_symbol_text()
+            explorer = self.get_explorer_text()
+
+            provider = web3.Web3(web3.Web3.HTTPProvider(rpc))
+            if provider.isConnected() and provider.eth.chain_id == chain_id:
+                result.isValid = payromasdk.engine.network.add_new(
+                    rpc=rpc, name=name, chain_id=chain_id, symbol=symbol, explorer=explorer
+                )
+
             if result.isValid:
-                result.message = translator("Network added successfully")
+                result.message = translator("Network added successfully.")
 
         except Exception as err:
             result.error(str(err))
@@ -143,10 +142,10 @@ class AddNetworkModel(addnetwork.UiForm):
         time.sleep(3)
         self.__addNetworkThread.signal.resultSignal.emit(result)
 
-    def __add_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __add_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.networkEdited.notify()
             event.mainTabChanged.notify(tab=Tab.NETWORKS_LIST)
 
         result.show_message()
-        self.add_completed()
