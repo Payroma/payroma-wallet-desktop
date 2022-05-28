@@ -14,6 +14,7 @@ class AuthenticatorScanModel(authenticatorscan.UiForm, event.EventForm):
         # Threading Methods
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
         self.__confirmThread.signal.resultSignal.connect(self.__confirm_clicked_ui)
+        self.__confirmThread.finished.connect(self.confirm_completed)
 
         # Variables
         self.__isTyping = False
@@ -54,13 +55,13 @@ class AuthenticatorScanModel(authenticatorscan.UiForm, event.EventForm):
 
     def __confirm_clicked_core(self):
         result = ThreadingResult(
-            message=translator("The OTP code is wrong")
+            message=translator("The OTP code is wrong!")
         )
 
         try:
             result.isValid = self.__totp.verify(self.get_otp_code_text())
             if result.isValid:
-                result.message = translator("Your OTP code has been confirmed successfully")
+                result.message = translator("Your OTP code has been confirmed successfully.")
 
         except Exception as err:
             result.error(str(err))
@@ -68,9 +69,9 @@ class AuthenticatorScanModel(authenticatorscan.UiForm, event.EventForm):
         time.sleep(3)
         self.__confirmThread.signal.resultSignal.emit(result)
 
-    def __confirm_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __confirm_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.FINISHED)
 
         result.show_message()
-        self.confirm_completed()

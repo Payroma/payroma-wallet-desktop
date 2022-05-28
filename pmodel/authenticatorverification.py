@@ -14,6 +14,7 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
         # Threading Methods
         self.__verifyThread = ThreadingArea(self.__verify_clicked_core)
         self.__verifyThread.signal.resultSignal.connect(self.__verify_clicked_ui)
+        self.__verifyThread.finished.connect(self.verify_completed)
 
         # Variables
         self.__isTyping = False
@@ -73,7 +74,7 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
 
     def __verify_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Password or PIN code doesn't match"),
+            message=translator("Password or PIN code doesn't match!"),
             params={
                 'username': '',
                 'OTPHash': ''
@@ -84,11 +85,11 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
             otp_hash = payromasdk.tools.walletcreator.otp_hash(
                 self.__currentWalletEngine.username(), self.get_password_text(), self.get_pin_code_text()
             )
-            otp_code = pyotp.TOTP(otp_hash).now()
+            otp_code = pyotp.TOTP(otp_hash)
 
             if self.__currentWalletEngine.login(
                 password=self.get_password_text(),
-                otp_code=otp_code
+                otp_code=otp_code.now()
             ):
                 self.__currentWalletEngine.logout()
                 result.isValid = True
@@ -104,7 +105,8 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
         time.sleep(3)
         self.__verifyThread.signal.resultSignal.emit(result)
 
-    def __verify_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __verify_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.authenticatorSetupVerified.notify(
                 username=result.params['username'], otp_hash=result.params['OTPHash']
@@ -112,4 +114,3 @@ class AuthenticatorVerificationModel(authenticatorverification.UiForm, event.Eve
             event.authenticatorSetupTabChanged.notify(tab=Tab.AuthenticatorSetupTab.SCAN)
 
         result.show_message()
-        self.verify_completed()
