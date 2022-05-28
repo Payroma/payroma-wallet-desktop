@@ -14,6 +14,7 @@ class LoginModel(login.UiForm, event.EventForm):
         # Threading Methods
         self.__loginThread = ThreadingArea(self.__login_clicked_core)
         self.__loginThread.signal.resultSignal.connect(self.__login_clicked_ui)
+        self.__loginThread.finished.connect(self.login_completed)
 
         # Variables
         self.__isTyping = False
@@ -65,16 +66,16 @@ class LoginModel(login.UiForm, event.EventForm):
 
     def __login_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Wrong password, Please try again")
+            message=translator("Wrong password! Please try again.")
         )
 
         try:
             username = self.__currentWalletEngine.username()
             password = self.get_password_text()
             pin_code = self.__currentWalletEngine.pin_code()
-            otp_code = pyotp.TOTP(payromasdk.tools.walletcreator.otp_hash(username, password, '')).now()
+            otp_code = pyotp.TOTP(payromasdk.tools.walletcreator.otp_hash(username, password, ''))
 
-            if not payromasdk.tools.walletcreator.access(username, password, pin_code, otp_code):
+            if not payromasdk.tools.walletcreator.access(username, password, pin_code, otp_code.now()):
                 result.isValid = True
 
         except Exception as err:
@@ -88,5 +89,3 @@ class LoginModel(login.UiForm, event.EventForm):
             event.authenticatorForward.notify(method=self.__forward, password=self.get_password_text())
         else:
             result.show_message()
-
-        self.login_completed()
