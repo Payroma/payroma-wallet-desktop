@@ -14,10 +14,12 @@ class SettingsModel(settings.UiForm, event.EventForm):
         # Threading Methods
         self.__backupThread = ThreadingArea(self.__backup_clicked_core)
         self.__backupThread.signal.resultSignal.connect(self.__backup_clicked_ui)
+        self.__backupThread.finished.connect(self.backup_completed)
 
         self.__importThread = ThreadingArea(self.__import_clicked_core)
         self.__importThread.signal.resultSignal.connect(self.__import_clicked_ui)
         self.__importThread.signal.normalSignal.connect(self.__import_password_required)
+        self.__importThread.finished.connect(self.import_completed)
 
         # Variables
         self.__backupPassword = None
@@ -118,7 +120,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
 
     def __backup_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to backup, Please try again")
+            message=translator("Failed to backup, Please try again.")
         )
 
         try:
@@ -126,7 +128,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
                 path=self.__backupFilePath, password=self.__backupPassword
             )
             if result.isValid:
-                result.message = translator("Backup completed successfully")
+                result.message = translator("Backup completed successfully.")
 
         except Exception as err:
             result.error(str(err))
@@ -134,9 +136,9 @@ class SettingsModel(settings.UiForm, event.EventForm):
         time.sleep(3)
         self.__backupThread.signal.resultSignal.emit(result)
 
-    def __backup_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __backup_clicked_ui(result: ThreadingResult):
         result.show_message()
-        self.backup_completed()
 
     @pyqtSlot()
     def import_clicked(self):
@@ -159,7 +161,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
 
     def __import_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Decryption password is wrong")
+            message=translator("Decryption password is wrong!")
         )
 
         try:
@@ -169,7 +171,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
                         path=self.__backupFilePath, password=self.__backupPassword, mode=SPDatabase.Control.SET
                     )
                     if result.isValid:
-                        result.message = translator("Import completed successfully")
+                        result.message = translator("Import completed successfully.")
                         break
 
                 except PermissionError:
@@ -184,13 +186,13 @@ class SettingsModel(settings.UiForm, event.EventForm):
         time.sleep(3)
         self.__importThread.signal.resultSignal.emit(result)
 
-    def __import_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __import_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.walletEdited.notify()
             event.mainTabChanged.notify(tab=Tab.WALLETS_LIST)
 
         result.show_message()
-        self.import_completed()
 
     def __import_password_required(self):
         messagebox = SPGraphics.MessageBoxPassword(
