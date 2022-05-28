@@ -16,9 +16,6 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
         self.__updateThread = ThreadingArea(self.__update_core)
         self.__updateThread.signal.resultSignal.connect(self.__update_ui)
 
-        self.__networkSwitchThread = ThreadingArea(self.__item_clicked_core)
-        self.__networkSwitchThread.signal.resultSignal.connect(self.__item_clicked_ui)
-
         # Variables
         self.__currentNetworkItem = None
 
@@ -38,28 +35,9 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
         if widget.is_checked():
             return
 
+        Global.settings.update_option(SettingsOption.networkID, widget.interface().id)
         self.__current_network(widget)
-        self.__networkSwitchThread.start()
-
-    def __item_clicked_core(self):
-        result = ThreadingResult()
-
-        try:
-            Global.settings.update_option(
-                option=SettingsOption.networkID, value=self.__currentNetworkItem.interface().id
-            )
-            result.isValid = True
-
-        except Exception as err:
-            result.error(str(err))
-
-        self.__networkSwitchThread.signal.resultSignal.emit(result)
-
-    def __item_clicked_ui(self, result: ThreadingResult):
-        if result.isValid:
-            self.__updateThread.start()
-        else:
-            result.show_message()
+        self.__updateThread.start()
 
     def refresh(self):
         default_network = Global.settings.get_option(SettingsOption.networkID, default=True)
