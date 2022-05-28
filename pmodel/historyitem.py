@@ -10,8 +10,8 @@ class HistoryItem(historyitem.UiForm):
         self.setup()
 
         # Threading Methods
-        self.__statusUpdateThread = ThreadingArea(self.__status_update_core)
-        self.__statusUpdateThread.signal.resultSignal.connect(self.__status_update_ui)
+        self.__updateThread = ThreadingArea(self.__update_core)
+        self.__updateThread.signal.resultSignal.connect(self.__update_ui)
 
         # Variables
         self.__interface = None
@@ -32,11 +32,11 @@ class HistoryItem(historyitem.UiForm):
         self.set_date(interface.dateCreated)
 
         if self.__interface.status == payromasdk.tools.interface.Transaction.Status.PENDING:
-            self.__statusUpdateThread.start()
+            self.__updateThread.start()
 
-    def __status_update_core(self):
+    def __update_core(self):
         result = ThreadingResult(
-            message=translator("Transaction failed")
+            message=translator("Transaction failed!")
         )
 
         try:
@@ -58,14 +58,14 @@ class HistoryItem(historyitem.UiForm):
                 result.isValid = True
 
             if result.isValid:
-                result.message = translator("Transaction confirmed successfully")
+                result.message = translator("Transaction confirmed successfully.")
 
         except Exception as err:
             result.error(str(err))
 
         time.sleep(3)
-        self.__statusUpdateThread.signal.resultSignal.emit(result)
+        self.__updateThread.signal.resultSignal.emit(result)
 
-    def __status_update_ui(self, result: ThreadingResult):
+    def __update_ui(self, result: ThreadingResult):
         self.set_status(self.__interface.status_text())
         result.show_message()
