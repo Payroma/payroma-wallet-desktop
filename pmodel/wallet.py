@@ -89,12 +89,13 @@ class WalletModel(wallet.UiForm, event.EventForm):
         messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
         messagebox.frame.layout().setSpacing(11)
         messagebox.exec_()
+
         if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
             self.__removeThread.start()
 
     def __remove_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to remove wallet, Please try again")
+            message=translator("Failed to remove wallet, Please try again.")
         )
 
         try:
@@ -102,7 +103,7 @@ class WalletModel(wallet.UiForm, event.EventForm):
                 wallet_interface=self.__currentWalletEngine.interface
             )
             if result.isValid:
-                result.message = translator("Wallet removed successfully")
+                result.message = translator("Wallet removed successfully.")
 
         except Exception as err:
             result.error(str(err))

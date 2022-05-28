@@ -17,6 +17,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
 
         self.__addTokenThread = ThreadingArea(self.__add_clicked_core)
         self.__addTokenThread.signal.resultSignal.connect(self.__add_clicked_ui)
+        self.__addTokenThread.finished.connect(self.add_completed)
 
         # Variables
         self.__isTyping = False
@@ -55,7 +56,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
 
     def __address_changed_core(self):
         result = ThreadingResult(
-            message=translator("This contract is not available"),
+            message=translator("This contract is not available!"),
             params={
                 'symbol': None,
                 'decimals': None
@@ -75,7 +76,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
                 pass
 
             if result.isValid:
-                result.message = translator("Contract has been detected")
+                result.message = translator("Contract has been detected.")
 
         except Exception as err:
             result.error(str(err))
@@ -130,7 +131,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
 
     def __add_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to add token, Please try again")
+            message=translator("Failed to add token, Please try again.")
         )
 
         try:
@@ -139,7 +140,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
                 contract.value() == i.contract.value() for i in self.__currentWalletEngine.tokens()
             )
             if is_exists:
-                result.message = translator("Token already exists")
+                result.message = translator("Token already exists!")
             else:
                 result.isValid = self.__currentWalletEngine.add_token(
                     payromasdk.tools.interface.Token(
@@ -150,7 +151,7 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
                 )
 
             if result.isValid:
-                result.message = translator("Token added successfully")
+                result.message = translator("Token added successfully.")
 
         except Exception as err:
             result.error(str(err))
@@ -158,10 +159,10 @@ class AddTokenModel(addtoken.UiForm, event.EventForm):
         time.sleep(3)
         self.__addTokenThread.signal.resultSignal.emit(result)
 
-    def __add_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __add_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.tokenEdited.notify()
             event.walletTabChanged.notify(tab=Tab.WalletTab.TOKENS_LIST)
 
         result.show_message()
-        self.add_completed()

@@ -34,18 +34,19 @@ class TokenItem(tokenitem.UiForm):
         messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
         messagebox.frame.layout().setSpacing(11)
         messagebox.exec_()
+
         if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
             self.__removeThread.start()
 
     def __remove_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to remove token, Please try again")
+            message=translator("Failed to remove token, Please try again.")
         )
 
         try:
             result.isValid = self.__walletEngine.remove_token(self.__tokenEngine.interface)
             if result.isValid:
-                result.message = translator("Token removed successfully")
+                result.message = translator("Token removed successfully.")
 
         except Exception as err:
             result.error(str(err))

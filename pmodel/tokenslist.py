@@ -1,5 +1,5 @@
 from plibs import *
-from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, ThreadingResult, ThreadingArea
 from pui import tokenslist
 from pmodel import tokenitem
 
@@ -12,8 +12,8 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
         self.events_listening()
 
         # Threading Methods
-        self.__balanceUpdateThread = ThreadingArea(self.__balance_update_core)
-        self.__balanceUpdateThread.signal.resultSignal.connect(self.__balance_update_ui)
+        self.__updateThread = ThreadingArea(self.__update_core)
+        self.__updateThread.signal.resultSignal.connect(self.__update_ui)
 
         # Variables
         self.__currentWalletEngine = None
@@ -21,12 +21,11 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
 
     def showEvent(self, a0: QShowEvent):
         super(TokensListModel, self).showEvent(a0)
-        self.__balanceUpdateThread.start()
+        self.__updateThread.start()
 
     def hideEvent(self, a0: QHideEvent):
         super(TokensListModel, self).hideEvent(a0)
-        self.__balanceUpdateThread.terminate()
-        self.__balanceUpdateThread.wait()
+        self.__updateThread.stop()
 
     def token_edited_event(self):
         self.refresh()
@@ -69,23 +68,21 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
 
         QTimer().singleShot(100, self.repaint)
 
-    def __balance_update_core(self):
-        result = ThreadingResult(
-            message=translator("Unable to connect, make sure you are connected to the internet")
-        )
+    def __update_core(self):
+        while self.__updateThread.isRunning():
+            result = ThreadingResult()
 
-        while self.__balanceUpdateThread.isRunning():
             try:
-                for token in self.__tokenItems:
-                    self.__balanceUpdateThread.signal.resultSignal.emit(ThreadingResult(
-                        is_valid=True,
-                        params={
-                            'token': token,
-                            'balance': token.engine().balance_of(self.__currentWalletEngine.address())
-                        }
-                    ))
+                owner = self.__currentWalletEngine.address()
+                for item in self.__tokenItems:
+                    try:
+                        result.params.update({
+                            item: item.engine().balance_of(owner).to_ether_string()
+                        })
+                    except web3.exceptions.BadFunctionCallOutput:
+                        continue
 
-                continue
+                result.isValid = True
 
             except requests.exceptions.ConnectionError:
                 pass
@@ -93,17 +90,17 @@ class TokensListModel(tokenslist.UiForm, event.EventForm):
             except Exception as err:
                 result.error(str(err))
 
-            finally:
-                time.sleep(10)
-
-            self.__balanceUpdateThread.signal.resultSignal.emit(result)
+            self.__updateThread.signal.resultSignal.emit(result)
+            time.sleep(10)
 
     @staticmethod
-    def __balance_update_ui(result: ThreadingResult):
+    def __update_ui(result: ThreadingResult):
         if result.isValid:
-            try:
-                result.params['token'].set_balance(result.params['balance'].to_ether_string())
-            except RuntimeError:
-                pass
-        else:
+            for item, balance in result.params.items():
+                try:
+                    item.set_balance(balance)
+                except RuntimeError:
+                    continue
+
+        elif result.isError:
             result.show_message()
