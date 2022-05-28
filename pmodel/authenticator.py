@@ -14,6 +14,7 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
         # Threading Methods
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
         self.__confirmThread.signal.resultSignal.connect(self.__confirm_clicked_ui)
+        self.__confirmThread.finished.connect(self.confirm_completed)
 
         # Variables
         self.__isTyping = False
@@ -60,7 +61,7 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
 
     def __confirm_clicked_core(self):
         result = ThreadingResult(
-            message=translator("The OTP code is wrong"),
+            message=translator("The OTP code is wrong!"),
             params={
                 'privateKey': ''
             }
@@ -75,7 +76,7 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
                 result.isValid = True
 
             if result.isValid:
-                result.message = translator("OTP code has been confirmed successfully")
+                result.message = translator("OTP code has been confirmed successfully.")
                 result.params['privateKey'] = private_key
 
         except Exception as err:
@@ -90,4 +91,3 @@ class AuthenticatorModel(authenticator.UiForm, event.EventForm):
             event.walletEdited.notify()
 
         result.show_message()
-        self.confirm_completed()
