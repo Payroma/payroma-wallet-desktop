@@ -18,6 +18,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
         self.__confirmThread = ThreadingArea(self.__confirm_clicked_core)
         self.__confirmThread.signal.resultSignal.connect(self.__confirm_clicked_ui)
+        self.__confirmThread.finished.connect(self.confirm_completed)
 
         # Variables
         self.__currentWalletEngine = None
@@ -34,8 +35,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
     def hideEvent(self, a0: QHideEvent):
         super(TransactionSenderModel, self).hideEvent(a0)
-        self.__gasUpdateThread.terminate()
-        self.__gasUpdateThread.wait()
+        self.__gasUpdateThread.stop()
 
     def wallet_changed_event(self, engine: payromasdk.engine.wallet.WalletEngine):
         self.__currentWalletEngine = engine
@@ -47,11 +47,11 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
         self.__data = details.get('data', '')
         self.__symbol = symbol
 
-        fn_name = self.__abi.get('name', "transfer").title()
+        fn_name = self.__abi.get('name', "transfer")
 
-        address = self.__args.get('recipient', self.__args.get('spender'))
-        if not address:
-            address = payromasdk.tools.interface.Address(tx[payromasdk.engine.provider.Metadata.TO])
+        to_address = self.__args.get('recipient', self.__args.get('spender'))
+        if not to_address:
+            to_address = payromasdk.tools.interface.Address(tx[payromasdk.engine.provider.Metadata.TO])
 
         amount = self.__args.get('amount', self.__args.get('_amount'))
         if not amount:
@@ -63,7 +63,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
         self.set_data(
             network=payromasdk.MainProvider.interface.name,
             function=translator(fn_name),
-            address=address.value(),
+            address=to_address.value(),
             amount=amount.to_ether_string(),
             symbol=symbol
         )
@@ -90,7 +90,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
             if isinstance(value, payromasdk.tools.interface.Address):
                 args[kay] = value.value()
             elif isinstance(value, payromasdk.tools.interface.WeiAmount):
-                args[kay] = value.to_ether_string()
+                args[kay] = value.to_ether_string(currency_format=False)
             else:
                 args[kay] = str(value)
 
@@ -102,7 +102,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
             tx=json.dumps(tx, sort_keys=False, indent=4),
             abi=json.dumps(self.__abi, sort_keys=False, indent=4),
             args=json.dumps(args, sort_keys=False, indent=4),
-            data=self.__data
+            data=tx[payromasdk.engine.token.Metadata.DATA]
         )
 
         messagebox = SPGraphics.MessageBox(
@@ -127,7 +127,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
 
     def __confirm_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Transaction failed, Please try again")
+            message=translator("Transaction failed, Please try again.")
         )
 
         try:
@@ -135,7 +135,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
                 tx_data=self.__tx, private_key=self.__privateKey
             )
 
-            fn_name = self.__abi.get('name', "transfer").title()
+            fn_name = self.__abi.get('name', "transfer")
             from_address = payromasdk.tools.interface.Address(
                 self.__tx[payromasdk.engine.provider.Metadata.FROM]
             )
@@ -167,7 +167,7 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
                 result.isValid = True
 
             if result.isValid:
-                result.message = translator("Please wait, Transaction in processing")
+                result.message = translator("Please wait, Transaction in processing.")
 
         except Exception as err:
             result.error(str(err))
@@ -175,23 +175,23 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
         time.sleep(3)
         self.__confirmThread.signal.resultSignal.emit(result)
 
-    def __confirm_clicked_ui(self, result: ThreadingResult):
+    @staticmethod
+    def __confirm_clicked_ui(result: ThreadingResult):
         if result.isValid:
             event.transactionHistoryEdited.notify()
             event.mainTabChanged.notify(tab=Tab.HISTORY_LIST)
 
         result.show_message()
-        self.confirm_completed()
 
     def __gas_update_core(self):
-        while True:
+        while self.__gasUpdateThread.isRunning():
             result = ThreadingResult(
-                message=translator("Unable to connect, make sure you are connected to the internet"),
+                message=translator("Unable to connect, make sure you are connected to the internet."),
                 params={
-                    payromasdk.engine.provider.Metadata.ESTIMATED_GAS: None,
-                    payromasdk.engine.provider.Metadata.MAX_FEE: None,
-                    payromasdk.engine.provider.Metadata.TOTAL: None,
-                    payromasdk.engine.provider.Metadata.MAX_AMOUNT: None
+                    payromasdk.engine.provider.Metadata.ESTIMATED_GAS: '--',
+                    payromasdk.engine.provider.Metadata.MAX_FEE: '--',
+                    payromasdk.engine.provider.Metadata.TOTAL: '--',
+                    payromasdk.engine.provider.Metadata.MAX_AMOUNT: '--'
                 }
             )
 
@@ -199,11 +199,13 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
                 gas = payromasdk.MainProvider.add_gas(
                     tx_data=self.__tx, eip1559_enabled=payromasdk.MainProvider.eip1559_supported()
                 )
-                result.params.update(gas)
 
-                balance = payromasdk.MainProvider.balance_of(self.__currentWalletEngine.address()).value()
-                max_amount = gas[payromasdk.engine.provider.Metadata.MAX_AMOUNT].value()
-                if balance < max_amount:
+                for key, value in gas.items():
+                    result.params[key] = value.to_ether_string()
+
+                max_amount = gas[payromasdk.engine.provider.Metadata.MAX_AMOUNT]
+                balance = payromasdk.MainProvider.balance_of(self.__currentWalletEngine.address())
+                if max_amount.value() > balance.value():
                     raise ValueError
 
                 result.isValid = True
@@ -217,25 +219,16 @@ class TransactionSenderModel(transactionsender.UiForm, event.EventForm):
             except Exception as err:
                 result.error(str(err))
 
-            finally:
-                self.__gasUpdateThread.signal.resultSignal.emit(result)
-                time.sleep(15)
+            self.__gasUpdateThread.signal.resultSignal.emit(result)
+            time.sleep(15)
 
     def __gas_update_ui(self, result: ThreadingResult):
-        try:
-            estimated_gas = result.params[payromasdk.engine.provider.Metadata.ESTIMATED_GAS].to_ether_string()
-            max_fee = result.params[payromasdk.engine.provider.Metadata.MAX_FEE].to_ether_string()
-            total = result.params[payromasdk.engine.provider.Metadata.TOTAL].to_ether_string()
-            max_amount = result.params[payromasdk.engine.provider.Metadata.MAX_AMOUNT].to_ether_string()
-        except AttributeError:
-            estimated_gas = max_fee = total = max_amount = '--'
-
         self.update_gas(
             symbol=payromasdk.MainProvider.interface.symbol,
-            estimated_gas=estimated_gas,
-            max_fee=max_fee,
-            total=total,
-            max_amount=max_amount,
+            estimated_gas=result.params[payromasdk.engine.provider.Metadata.ESTIMATED_GAS],
+            max_fee=result.params[payromasdk.engine.provider.Metadata.MAX_FEE],
+            total=result.params[payromasdk.engine.provider.Metadata.TOTAL],
+            max_amount=result.params[payromasdk.engine.provider.Metadata.MAX_AMOUNT],
             confirmable=result.isValid
         )
 
