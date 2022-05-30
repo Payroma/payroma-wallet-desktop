@@ -62,7 +62,8 @@ class __Provider(object):
         }
 
     def add_gas(
-            self, tx_data: dict, eip1559_enabled: bool = False, rate: str = EIP1559Metadata.MEDIUM
+            self, tx_data: dict, amount_adjustment: bool = False,
+            eip1559_enabled: bool = False, rate: str = EIP1559Metadata.MEDIUM
     ) -> dict:
         self.__remove_fee(tx_data)
         gas_limit = self.web3.eth.estimate_gas(tx_data)
@@ -82,6 +83,15 @@ class __Provider(object):
 
         total = estimated_gas + tx_data[Metadata.VALUE]
         max_amount = max_fee + tx_data[Metadata.VALUE]
+
+        if amount_adjustment and tx_data[Metadata.VALUE] > 0:
+            total_balance = self.web3.eth.get_balance(tx_data[Metadata.FROM])
+            if max_amount > total_balance:
+                amount_left = total_balance - max_fee
+                if amount_left > 0:
+                    tx_data[Metadata.VALUE] = amount_left
+                else:
+                    raise ValueError("Insufficient funds for transfer, maybe it needs gas fee.")
 
         tx_data.update({
             Metadata.GAS: gas_limit
