@@ -62,7 +62,7 @@ class WithdrawModel(withdraw.UiForm, event.EventForm):
     def add_new_clicked(self):
         messagebox = SPGraphics.MessageBoxPassword(
             parent=self,
-            text=translator("Please enter a nickname for this wallet"),
+            text=translator("Please enter a nickname for this wallet."),
             font_size=fonts.data.size.title,
             color=styles.data.colors.font.name(),
             window_size=Size.messageBox
@@ -81,7 +81,7 @@ class WithdrawModel(withdraw.UiForm, event.EventForm):
 
     def __add_new_clicked_core(self):
         result = ThreadingResult(
-            message=translator("Failed to add new address, Please try again")
+            message=translator("Failed to add new address, Please try again.")
         )
 
         try:
@@ -91,7 +91,7 @@ class WithdrawModel(withdraw.UiForm, event.EventForm):
             )
 
             if result.isValid:
-                result.message = translator("Address added successfully")
+                result.message = translator("Address added successfully.")
 
         except Exception as err:
             result.error(str(err))
