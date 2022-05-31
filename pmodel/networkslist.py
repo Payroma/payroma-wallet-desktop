@@ -20,9 +20,17 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
         self.__currentNetworkItem = None
 
     def app_started_event(self):
+        hide_testnet = Global.settings.get_option(SettingsOption.hideTestNet)
+        super(NetworksListModel, self).switch_clicked(hide_testnet)
         self.refresh()
 
     def network_edited_event(self):
+        self.refresh()
+
+    @pyqtSlot(bool)
+    def switch_clicked(self, state: bool):
+        super(NetworksListModel, self).switch_clicked(state)
+        Global.settings.update_option(SettingsOption.hideTestNet, state)
         self.refresh()
 
     @pyqtSlot()
@@ -42,11 +50,15 @@ class NetworksListModel(networkslist.UiForm, event.EventForm):
     def refresh(self):
         default_network = Global.settings.get_option(SettingsOption.networkID, default=True)
         current_network = Global.settings.get_option(SettingsOption.networkID)
+        hide_testnet = Global.settings.get_option(SettingsOption.hideTestNet)
         item_checked = None
 
         self.reset()
 
         for network in payromasdk.engine.network.get_all():
+            if hide_testnet and 'testnet' in network.name.lower():
+                continue
+
             item = networkitem.NetworkItem(self)
             item.set_interface(network)
 

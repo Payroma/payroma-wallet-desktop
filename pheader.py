@@ -52,6 +52,7 @@ class Dir:
 class SettingsOption:
     themeName = '0x001'
     networkID = '0x002'
+    hideTestNet = '0x003'
 
 
 # Shortcuts

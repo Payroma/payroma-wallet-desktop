@@ -11,11 +11,12 @@ class HeaderWidget(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         self.setLayout(QGridLayout())
-        self.layout().setContentsMargins(11, 11, 11, 11)
-        self.layout().setSpacing(0)
+        self.layout().setContentsMargins(31, 11, 11, 11)
+        self.layout().setHorizontalSpacing(11)
+        self.layout().setVerticalSpacing(0)
 
         self.labelTitle = SPGraphics.QuickLabel(
-            self, fixed_height=31, align=Qt.AlignCenter
+            self, fixed_height=31
         )
         self.labelTitle.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
 
@@ -23,8 +24,18 @@ class HeaderWidget(QWidget):
             self, icon_size=Size.s21, fixed_size=Size.s41, tooltip=QApplication.toolTip.addNewR
         )
 
-        self.layout().addWidget(self.labelTitle, 0, 0, 1, 2)
+        self.labelVisible = SPGraphics.QuickLabel(
+            self, fixed_size=QSize(221, 31)
+        )
+        self.labelVisible.setWordWrap(True)
+        self.labelVisible.setObjectName('labelDescription')
+
+        self.switchVisible = SPGraphics.QSwitch(self, 10, 13)
+
+        self.layout().addWidget(self.labelTitle, 0, 0, 1, 1)
         self.layout().addWidget(self.pushButtonAddNew, 0, 1, 1, 1, Qt.AlignRight)
+        self.layout().addWidget(self.labelVisible, 1, 0, 1, 1)
+        self.layout().addWidget(self.switchVisible, 1, 1, 1, 1, Qt.AlignRight)
 
 
 class ListWidget(SPGraphics.QuickListWidget):
@@ -56,6 +67,7 @@ class UiForm(QWidget, SetupForm):
         self.setObjectName(Tab.NETWORKS_LIST)
 
         self.__headerWidget = HeaderWidget(self)
+        self.__headerWidget.switchVisible.clicked.connect(self.switch_clicked)
         self.__headerWidget.pushButtonAddNew.clicked.connect(self.add_new_clicked)
 
         self.__listWidget = ListWidget(self)
@@ -72,6 +84,7 @@ class UiForm(QWidget, SetupForm):
 
     def re_translate(self):
         self.__headerWidget.labelTitle.setText(translator("Blockchain Networks"))
+        self.__headerWidget.labelVisible.setText(translator("Show/Hide testnet networks."))
         self.__listWidget.labelTitle.setText(translator("No networks has been added yet!"))
         self.__listWidget.labelDescription.setText(translator(
             "Let's add your first network today, click on \"+\" button. It's easy."
@@ -82,6 +95,9 @@ class UiForm(QWidget, SetupForm):
 
         self.__listWidget.labelDescription.setFont(font)
 
+        font.setPointSize(fonts.data.size.title)
+        self.__headerWidget.labelVisible.setFont(font)
+
         font.setPointSize(fonts.data.size.medium)
         font.setBold(True)
         self.__headerWidget.labelTitle.setFont(font)
@@ -89,6 +105,10 @@ class UiForm(QWidget, SetupForm):
         font.setFamily(fonts.data.family.black)
         font.setBold(False)
         self.__listWidget.labelTitle.setFont(font)
+
+    @pyqtSlot(bool)
+    def switch_clicked(self, state: bool):
+        self.__headerWidget.switchVisible.setChecked(state)
 
     @pyqtSlot()
     def add_new_clicked(self):
