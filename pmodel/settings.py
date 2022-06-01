@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
+from pcontroller import pupdater, payromasdk, event, translator, ThreadingResult, ThreadingArea
 from pui import settings, fonts, images, styles, Size
 
 
@@ -21,9 +21,17 @@ class SettingsModel(settings.UiForm, event.EventForm):
         self.__importThread.signal.normalSignal.connect(self.__import_password_required)
         self.__importThread.finished.connect(self.import_completed)
 
+        self.__autoUpdateThread = ThreadingArea(self.__auto_update_core)
+        self.__autoUpdateThread.signal.resultSignal.connect(self.__auto_update_ui)
+        self.__autoUpdateThread.signal.normalSignal.connect(self.__auto_update_ask)
+
         # Variables
         self.__backupPassword = None
         self.__backupFilePath = None
+        self.__updateAccepted = None
+
+    def app_started_event(self):
+        self.__autoUpdateThread.start()
 
     def network_changed_event(self, name: str, status: bool):
         self.set_data(status, name)
@@ -206,3 +214,75 @@ class SettingsModel(settings.UiForm, event.EventForm):
         messagebox.labelMessage.setAlignment(Qt.AlignCenter)
         messagebox.exec_()
         self.__backupPassword = messagebox.password
+
+    def __auto_update_core(self):
+        result = ThreadingResult(
+            message=translator("Failed to update the application."),
+            params={
+                'inProgress': False
+            }
+        )
+
+        try:
+            is_updated = pupdater.is_updated(default=True)
+
+            if not is_updated:
+                self.__autoUpdateThread.signal.normalSignal.emit()
+                while self.__updateAccepted is None:
+                    time.sleep(1)
+
+            if self.__updateAccepted:
+                result.params['inProgress'] = True
+
+                if pupdater.download() and pupdater.update():
+                    result.isValid = True
+
+                if result.isValid:
+                    result.message = translator("Application updated successfully.")
+
+        except Exception as err:
+            result.error(str(err))
+
+        self.__autoUpdateThread.signal.resultSignal.emit(result)
+
+    def __auto_update_ui(self, result: ThreadingResult):
+        self.__updateAccepted = None
+        if result.params['inProgress']:
+            result.show_message()
+
+        if result.isValid:
+            messagebox = SPGraphics.MessageBoxConfirm(
+                parent=self,
+                text=translator("Application needs to restart to update."),
+                font_size=fonts.data.size.title,
+                color=styles.data.colors.font.name(),
+                accept=translator("Restart"),
+                cancel=translator("Later")
+            )
+            messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
+            messagebox.labelMessage.setAlignment(Qt.AlignCenter)
+            messagebox.exec_()
+
+            if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
+                os.execl(sys.executable, sys.executable, *sys.argv)
+
+    def __auto_update_ask(self):
+        messagebox = SPGraphics.MessageBoxConfirm(
+            parent=self,
+            text=translator("A new version of {} is available!").format(SOFTWARE_NAME),
+            font_size=fonts.data.size.title,
+            color=styles.data.colors.font.name(),
+            accept=translator("Update"),
+            cancel=translator("Later")
+        )
+        messagebox.frame.layout().setContentsMargins(21, 11, 21, 11)
+        messagebox.labelMessage.setAlignment(Qt.AlignCenter)
+        messagebox.exec_()
+
+        if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
+            QApplication.quickNotification.information(
+                translator("Please wait, updates are downloading..."), timeout=3000
+            )
+            self.__updateAccepted = True
+        else:
+            self.__updateAccepted = False

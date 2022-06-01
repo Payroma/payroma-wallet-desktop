@@ -27,6 +27,7 @@ SECRET_VALUE = (
 class Website:
     PAYROMA = 'www.payroma.com'
     STAKE_CONTRACTS_API = 'https://raw.githubusercontent.com/Payroma/metadata/main/stake-contracts.json'
+    UPDATER_API = 'https://raw.githubusercontent.com/Payroma/metadata/main/payroma-wallet-updater.json'
 
     class Authenticator:
         GOOGLE_PLAY = 'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=en&gl=US'

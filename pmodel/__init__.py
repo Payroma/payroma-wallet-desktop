@@ -8,6 +8,7 @@ WARRING: Don't import pmodel from another object
 from plibs import QMessageBox, QFont, SPGraphics, SPInputmanager
 from pheader import *
 import pcontroller
+import pcontroller.pupdater
 import pui
 
 
@@ -57,6 +58,8 @@ def launch():
     try:
         input_manager_setup()
         graphics_setup()
+        pcontroller.pupdater.set_app_dir('.')
+        pcontroller.pupdater.set_api_client(Website.UPDATER_API)
         Global.settings = pcontroller.settings_load()
 
         from pmodel.main import MainModel
