@@ -34,6 +34,7 @@ def __get_files() -> list:
     except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError):
         pass
     finally:
+        client.close()
         return result
 
 
@@ -55,6 +56,8 @@ def download():
         if not in_temp and not in_app:
             os.makedirs(os.path.dirname(temp_path), exist_ok=True)
             client.files_download_to_file(download_path=temp_path, path=file.id)
+
+    client.close()
 
 
 def update() -> bool:
