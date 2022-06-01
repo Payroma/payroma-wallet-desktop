@@ -48,9 +48,13 @@ def latest_update() -> dict:
         return result
 
 
-def is_updated() -> bool:
+def is_updated(default: bool = False) -> bool:
     _latest_version = latest_version()[Metadata.latestVersion]
     _latest_update = latest_update()[Metadata.latestVersion]
+
+    if not _latest_version:
+        return default
+
     return _latest_version == _latest_update
 
 
