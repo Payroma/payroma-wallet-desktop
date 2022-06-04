@@ -27,11 +27,21 @@ class PNSEngine(object):
     def is_recorded(self, name: str) -> bool:
         return self.contract.functions.isRecorded(name).call()
 
-    def get_by_name(self, name: str) -> tuple[str, bool, bool]:
-        return self.contract.functions.getByName(name).call()
+    def get_by_name(self, name: str) -> dict:
+        result = self.contract.functions.getByName(name).call()
+        return {
+            'address': interface.Address(result[0]),
+            'isVerified': result[1],
+            'isScammer': result[2]
+        }
 
-    def get_by_address(self, address: interface.Address) -> tuple[str, bool, bool]:
-        return self.contract.functions.getByAddress(address.value()).call()
+    def get_by_address(self, address: interface.Address) -> dict:
+        result = self.contract.functions.getByAddress(address.value()).call()
+        return {
+            'username': result[0],
+            'isVerified': result[1],
+            'isScammer': result[2]
+        }
 
     def new_record(self, name: str) -> dict:
         return self._build_transaction(
