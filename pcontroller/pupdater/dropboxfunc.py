@@ -28,7 +28,8 @@ def __get_files() -> list:
     result = []
 
     try:
-        for file in client.files_list_folder(CLOUD_DIR, recursive=True).entries:
+        maximum_limit = 2000
+        for file in client.files_list_folder(CLOUD_DIR, recursive=True, limit=maximum_limit).entries:
             if file.path_lower != CLOUD_DIR:
                 result.append(file)
     except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError):
