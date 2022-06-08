@@ -96,7 +96,7 @@ class StakeListModel(stakelist.UiForm, event.EventForm):
         try:
             is_empty = (len(payromasdk.engine.stake.get_all()) == 0)
             if is_empty:
-                payromasdk.engine.stake.data_import(api_url=Website.STAKE_CONTRACTS_API)
+                payromasdk.engine.stake.data_import(Website.STAKE_CONTRACTS_API)
                 result.isValid = True
 
         except requests.exceptions.ConnectionError:

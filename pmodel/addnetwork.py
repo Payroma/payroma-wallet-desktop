@@ -1,6 +1,6 @@
 from plibs import *
 from pheader import *
-from pcontroller import payromasdk, event, translator, ThreadingResult, ThreadingArea
+from pcontroller import payromasdk, event, translator, url_correction, ThreadingResult, ThreadingArea
 from pui import addnetwork
 
 
@@ -121,11 +121,11 @@ class AddNetworkModel(addnetwork.UiForm):
         )
 
         try:
-            rpc = self.get_rpc_text()
+            rpc = url_correction(self.get_rpc_text())
             name = self.get_name_text()
             chain_id = int(self.get_chain_id_text())
             symbol = self.get_symbol_text()
-            explorer = self.get_explorer_text()
+            explorer = url_correction(self.get_explorer_text())
 
             provider = web3.Web3(web3.Web3.HTTPProvider(rpc))
             if provider.isConnected() and provider.eth.chain_id == chain_id:

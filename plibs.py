@@ -24,9 +24,11 @@ import random
 import pickle
 import struct
 import psutil
+import decimal
 import hashlib
 import requests
 import platform
+import dropbox
 import pyqrcode
 import webbrowser
 import SPCrypto

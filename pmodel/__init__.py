@@ -8,6 +8,8 @@ WARRING: Don't import pmodel from another object
 from plibs import QMessageBox, QFont, SPGraphics, SPInputmanager
 from pheader import *
 import pcontroller
+import pcontroller.event
+import pcontroller.payromasdk
 import pcontroller.pupdater
 import pui
 
