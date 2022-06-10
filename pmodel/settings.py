@@ -234,7 +234,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
             if self.__updateAccepted:
                 result.params['inProgress'] = True
 
-                if pupdater.download() and pupdater.update():
+                if pupdater.download():
                     result.isValid = True
 
                 if result.isValid:
@@ -264,7 +264,7 @@ class SettingsModel(settings.UiForm, event.EventForm):
             messagebox.exec_()
 
             if messagebox.clickedOn is SPGraphics.Button.ACCEPT:
-                os.execl(sys.executable, sys.executable, *sys.argv)
+                psutil.Popen(f'"{SOFTWARE_NAME} Update.exe" {os.getpid()} {Website.UPDATER_API}')
 
     def __auto_update_ask(self):
         messagebox = SPGraphics.MessageBoxConfirm(
