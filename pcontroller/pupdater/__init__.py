@@ -1,5 +1,10 @@
 import os
+import six
 import json
+import shutil
+import hashlib
+import dropbox
+import platform
 import requests
 from . import header
 from . import dropboxfunc
